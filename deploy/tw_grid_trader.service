@@ -1,0 +1,18 @@
+[Unit]
+Description=Taiwan Stock Grid Trading System
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/aloneworker2022
+Environment="PATH=/home/pi/aloneworker2022/.venv/bin"
+ExecStart=/home/pi/aloneworker2022/.venv/bin/python /home/pi/aloneworker2022/run.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

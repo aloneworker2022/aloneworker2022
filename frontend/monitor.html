@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>監控 — 台股網格交易系統</title>
+<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <span class="brand">台股網格</span>
+  <a href="/">網格設定</a>
+  <a href="/backtest">回測</a>
+  <a href="/monitor" class="active">監控</a>
+</nav>
+
+<div class="page">
+  <h2 style="margin-bottom:16px;font-size:18px">即時持倉監控</h2>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <!-- 新增監控 -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px">
+      <div class="section-title">新增監控持倉</div>
+      <div class="form-row">
+        <label>股票代碼</label>
+        <input type="text" id="mon-ticker" placeholder="例：2330">
+      </div>
+      <div class="form-row-2">
+        <div>
+          <label>上界（元）</label>
+          <input type="number" id="mon-upper" step="0.5">
+        </div>
+        <div>
+          <label>下界（元）</label>
+          <input type="number" id="mon-lower" step="0.5">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div>
+          <label>格子數</label>
+          <input type="number" id="mon-grids" value="10" min="2">
+        </div>
+        <div>
+          <label>每格股數</label>
+          <input type="number" id="mon-shares" value="1" min="1">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-secondary" onclick="monSuggest()">ATR 自動填入</button>
+        <button class="btn btn-primary" onclick="addMonitorPosition()">新增監控</button>
+      </div>
+    </div>
+
+    <!-- 已監控持倉清單 -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px">
+      <div class="section-title">監控清單</div>
+      <div id="positions-list">
+        <p style="color:var(--text-muted);text-align:center;padding:20px">載入中…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 即時提醒 -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="section-title" style="margin:0">即時格線提醒</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="last-refresh" style="font-size:11px;color:var(--text-muted)"></span>
+        <button class="btn btn-secondary btn-sm" onclick="refreshAlerts()">立即更新</button>
+        <button class="btn btn-secondary btn-sm" id="btn-auto" onclick="toggleAutoRefresh()">自動更新（60秒）</button>
+      </div>
+    </div>
+    <div id="alerts-list">
+      <p style="color:var(--text-muted);text-align:center;padding:20px">按「立即更新」查詢格線狀態</p>
+    </div>
+  </div>
+
+  <!-- 說明 -->
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:16px;font-size:12px;color:var(--text-muted)">
+    <strong style="color:var(--text)">說明：</strong>
+    即時報價優先使用 TWSE 官方 API（盤中）；盤後顯示最新收盤價。
+    監控資料儲存在記憶體，重啟伺服器後需重新設定。
+    「接近格線」的定義為股價在格線 ±1% 以內。
+  </div>
+</div>
+
+<script src="/js/utils.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/monitor_panel.js"></script>
+<script>
+  loadPositions();
+</script>
+</body>
+</html>
