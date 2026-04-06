@@ -78,6 +78,19 @@ function renderBacktestResult(result, initial) {
   document.getElementById("stat-bh").textContent      = fmtPct(result.buy_hold_return_pct);
   document.getElementById("stat-bh").className        = "stat-value " + pctClass(result.buy_hold_return_pct);
 
+  // 網格停止原因
+  const stopEl = document.getElementById("stat-stop");
+  if (result.stop_reason === "upper_break") {
+    stopEl.textContent = "突破上界 → 獲利了結";
+    stopEl.style.color = "var(--green)";
+  } else if (result.stop_reason === "lower_break") {
+    stopEl.textContent = "跌破下界 → 強制停損";
+    stopEl.style.color = "var(--red)";
+  } else {
+    stopEl.textContent = "回測期間未觸及上下界";
+    stopEl.style.color = "var(--text-muted)";
+  }
+
   // Equity curve
   const curve = result.equity_curve;
   if (curve && curve.length > 0) {
@@ -104,10 +117,16 @@ function renderTradeTable(records) {
   tbody.innerHTML = "";
   records.forEach(t => {
     const tr = document.createElement("tr");
-    const isSell = t.action === "sell";
+    const isBuy = t.action === "buy";
+    const actionLabel = {
+      "buy": "買入", "sell": "賣出",
+      "sell_upper": "止盈（上界）", "sell_lower": "停損（下界）",
+    }[t.action] || t.action;
+    const actionClass = isBuy ? "value-red" :
+      t.action === "sell_lower" ? "value-red" : "value-green";
     tr.innerHTML = `
       <td>${t.date}</td>
-      <td class="${isSell ? 'value-green' : 'value-red'}">${isSell ? "賣出" : "買入"}</td>
+      <td class="${actionClass}">${actionLabel}</td>
       <td>#${t.grid_index}</td>
       <td>${fmtNum(t.price)}</td>
       <td>${t.shares}</td>
