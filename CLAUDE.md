@@ -1,0 +1,90 @@
+# OpenClaw 虛擬世界模擬器
+
+持續存在的文字虛擬世界，讓 OpenClaw agent 作為世界中的居民。
+
+## 專案結構
+
+```
+world-server/    Node.js/TypeScript 世界伺服器，port 3000
+agents/ming/     小明 agent 的 OpenClaw workspace 設定
+agents/player/   玩家化身的 OpenClaw workspace 設定
+```
+
+## 快速啟動
+
+### Phase 1: 啟動世界伺服器
+```bash
+cd world-server
+npm install
+npm run dev
+```
+
+驗收：
+```bash
+curl http://127.0.0.1:3000/health
+curl http://127.0.0.1:3000/api/admin/snapshot
+```
+
+### Phase 2: 設定 Player Avatar (OpenClaw)
+
+1. 複製 `agents/player/` 到你的 OpenClaw workspace：
+```bash
+cp -r agents/player/* ~/.openclaw/workspace-player/
+```
+
+2. 在 OpenClaw 的 `~/.openclaw/openclaw.json` 設定：
+```json
+{
+  "gateway": { "port": 18790 }
+}
+```
+
+3. 向世界伺服器註冊化身：
+```bash
+curl -X POST http://127.0.0.1:3000/api/entities/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "player_avatar",
+    "name": "你的名字",
+    "type": "player_avatar",
+    "webhook_url": "http://127.0.0.1:18790/hooks/agent",
+    "webhook_token": "YOUR_OPENCLAW_TOKEN",
+    "start_room": "living_room"
+  }'
+```
+
+4. 儲存回傳的 auth_token：
+```bash
+echo '{"entity_id":"player_avatar","auth_token":"TOKEN_HERE"}' \
+  > ~/.openclaw/workspace-player/world_config.json
+```
+
+5. 設定 Telegram Bot，在 OpenClaw config 加入 telegram channel
+
+### Phase 3: 設定小明 Agent
+
+類似步驟，但使用 `agents/ming/` 和 port 18789。
+
+## API 速查
+
+| 端點 | 說明 |
+|------|------|
+| `GET /api/admin/snapshot` | 整個世界當前狀態 |
+| `POST /api/entities/register` | 註冊 agent |
+| `POST /api/actions` | 送出行動 |
+| `GET /api/state/me?entity_id=X` | 查詢自己狀態 |
+| `GET /api/state/history?entity_id=X&since=Y` | 查詢事件歷史 |
+| `POST /api/admin/fast_forward` | 時間快轉 `{"world_minutes": 60}` |
+| `POST /api/admin/set_weather` | 設天氣 `{"weather":"rainy","temperature":18}` |
+| `POST /api/admin/spawn_object` | 生成物件 |
+
+## 世界時間
+
+現實 1 分鐘 = 世界 10 分鐘。Tick 每 6 秒。
+
+## 開發注意事項
+
+- `world-server/data/` 是 runtime data（已 gitignore）
+- 世界狀態保存在 `world-server/data/world-state.json`
+- 事件日誌在 `world-server/data/world_log_day_N.jsonl`
+- TypeScript 型別：`world-server/src/types.ts`
