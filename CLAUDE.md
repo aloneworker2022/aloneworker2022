@@ -32,7 +32,7 @@ http://<RPi5-IP>:3755/
 
 ### Phase 2: 設定 OpenClaw Agents
 
-**架構說明：** 所有 agent 共用同一個 OpenClaw 實例（同一個 port 18789）。
+**架構說明：** 所有 agent 共用同一個 OpenClaw 實例（同一個 port 3799）。
 World Server 用 `agentId` 參數告訴 OpenClaw 這次要跑哪個角色。
 
 #### 2a. 在 OpenClaw 設定多個 agent
@@ -66,7 +66,7 @@ curl -X POST http://127.0.0.1:3755/api/entities/register \
     "id": "player_avatar",
     "name": "你的名字",
     "type": "player_avatar",
-    "webhook_url": "http://127.0.0.1:18789/hooks/agent",
+    "webhook_url": "http://127.0.0.1:3799/hooks/agent",
     "webhook_token": "YOUR_OPENCLAW_TOKEN",
     "openclaw_agent_id": "player",
     "start_room": "living_room"
@@ -79,7 +79,7 @@ curl -X POST http://127.0.0.1:3755/api/entities/register \
     "id": "agent_ming",
     "name": "小明",
     "type": "agent",
-    "webhook_url": "http://127.0.0.1:18789/hooks/agent",
+    "webhook_url": "http://127.0.0.1:3799/hooks/agent",
     "webhook_token": "YOUR_OPENCLAW_TOKEN",
     "openclaw_agent_id": "ming",
     "start_room": "living_room"
