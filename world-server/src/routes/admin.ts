@@ -77,6 +77,30 @@ adminRouter.post('/fast_forward', async (req, res) => {
   res.json({ ok: true, from: fromTime, to: toTime, world_minutes_elapsed: world_minutes });
 });
 
+adminRouter.get('/body_state/:entity_id', (req, res) => {
+  const { entity_id } = req.params;
+  const state = getState();
+  const entity = state.entities[entity_id];
+  if (!entity) { res.status(404).json({ error: 'Entity not found' }); return; }
+
+  // Find workspace path from agents/ folder structure
+  import('fs').then(fs => {
+    import('path').then(path => {
+      const repoRoot = path.resolve(process.cwd(), '..');
+      const agentDir = path.join(repoRoot, 'agents', entity_id);
+      const bodyStatePath = path.join(agentDir, 'body_state.json');
+      if (fs.existsSync(bodyStatePath)) {
+        try {
+          const data = JSON.parse(fs.readFileSync(bodyStatePath, 'utf8'));
+          res.json({ ok: true, entity_id, body_state: data });
+        } catch { res.json({ ok: false, reason: 'parse error' }); }
+      } else {
+        res.json({ ok: false, reason: 'body_state.json not found — agent has not had a tick yet' });
+      }
+    });
+  });
+});
+
 adminRouter.post('/scaffold_agent', (req, res) => {
   const { entity_id, name, type, auth_token, world_server_url, workspace_path } = req.body as {
     entity_id: string; name: string; type: string;

@@ -110,6 +110,18 @@
     </div>
   </div>
 
+  <!-- 生理狀態 -->
+  <div class="card full-width">
+    <div class="card-title">
+      生理狀態
+      <span style="color:var(--muted);font-size:10px;font-weight:normal">（AI agent 的身體狀態，由 body-state skill 管理）</span>
+      <button onclick="refreshBodyStates()" style="margin-left:auto;padding:2px 8px;font-size:11px;background:var(--border);color:var(--text)">重新整理</button>
+    </div>
+    <div class="card-body" id="body-states-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+      <span style="color:var(--muted);font-size:12px">載入中...</span>
+    </div>
+  </div>
+
   <!-- 管理員控制台 -->
   <div class="card full-width">
     <div class="card-title">管理員控制台</div>
@@ -494,12 +506,76 @@ async function registerAgent() {
   fetchSnapshot();
 }
 
+// --- Body States ---
+function barColor(val, max = 100) {
+  const pct = val / max;
+  if (pct > 0.8) return 'var(--red)';
+  if (pct > 0.5) return 'var(--yellow)';
+  return 'var(--green)';
+}
+
+function moodColor(val) {
+  if (val > 30) return 'var(--green)';
+  if (val > -30) return 'var(--yellow)';
+  return 'var(--red)';
+}
+
+function bar(label, val, max = 100, colorFn = barColor) {
+  const pct = Math.min(100, Math.max(0, (val / max) * 100)).toFixed(0);
+  const color = colorFn(val, max);
+  return `
+    <div style="margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
+        <span style="color:var(--muted)">${label}</span>
+        <span style="color:${color};font-weight:bold">${Number(val).toFixed(0)}</span>
+      </div>
+      <div style="background:var(--border);border-radius:3px;height:5px">
+        <div style="background:${color};width:${pct}%;height:100%;border-radius:3px;transition:width 0.3s"></div>
+      </div>
+    </div>`;
+}
+
+async function refreshBodyStates() {
+  if (!lastSnapshot) return;
+  const grid = document.getElementById('body-states-grid');
+  const agents = lastSnapshot.entities.filter(e => e.type !== 'player_avatar');
+  if (agents.length === 0) {
+    grid.innerHTML = '<span style="color:var(--muted);font-size:12px">沒有 AI agent（player_avatar 沒有生理狀態）</span>';
+    return;
+  }
+
+  const cards = await Promise.all(agents.map(async e => {
+    const r = await fetch(`${BASE}/api/admin/body_state/${e.id}`);
+    const d = await r.json();
+    if (!d.ok) {
+      return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px">
+        <div style="font-weight:bold;color:var(--accent);margin-bottom:6px">${e.name}</div>
+        <div style="color:var(--muted);font-size:12px">${d.reason ?? '無資料'}</div>
+      </div>`;
+    }
+    const bs = d.body_state;
+    const moodPct = ((bs.mood + 100) / 2);
+    return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px">
+      <div style="font-weight:bold;color:var(--accent);margin-bottom:8px">${e.name} <span style="color:var(--muted);font-size:11px">(${e.room})</span></div>
+      ${bar('飢餓', bs.hunger)}
+      ${bar('口渴', bs.thirst)}
+      ${bar('疲勞', bs.fatigue)}
+      ${bar('無聊', bs.boredom)}
+      ${bar('社交需求', bs.social_need)}
+      ${bar('心情', moodPct, 100, () => moodColor(bs.mood))}
+    </div>`;
+  }));
+
+  grid.innerHTML = cards.join('');
+}
+
 // --- Init ---
 renderCreds();
-fetchSnapshot();
+fetchSnapshot().then(() => refreshBodyStates());
 fetchLog();
 setInterval(fetchSnapshot, 5000);
 setInterval(fetchLog, 8000);
+setInterval(refreshBodyStates, 10000);
 document.getElementById('say-entity').addEventListener('change', updateSayCredStatus);
 </script>
 </body>

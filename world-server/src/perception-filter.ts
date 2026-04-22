@@ -76,6 +76,10 @@ export function computePerceptions(event: WorldEvent): PerceptionTarget[] {
     if (entity.id === event.actor_id) continue;
     if (!entity.online && !['tick', 'time_period_changed', 'day_changed'].includes(event.type)) continue;
 
+    // tick events only go to non-player agents (for body state updates)
+    // player_avatar only gets meaningful time events, not every minute tick
+    if (event.type === 'tick' && entity.type === 'player_avatar') continue;
+
     const entityRoom = entity.current_room;
     const actorRoomData = getRoom(actorRoom);
     const sameRoom = entityRoom === actorRoom;
