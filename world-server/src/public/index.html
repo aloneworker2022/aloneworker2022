@@ -57,6 +57,9 @@
   #toast { position: fixed; bottom: 20px; right: 20px; background: var(--green); color: white; padding: 8px 16px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
   #toast.error { background: var(--red); }
   #toast.show { opacity: 1; }
+  .token-box { background: var(--bg); border: 1px solid var(--green); border-radius: 4px; padding: 8px; margin-top: 8px; word-break: break-all; font-size: 12px; color: var(--green); cursor: pointer; }
+  .token-box:hover { opacity: 0.8; }
+  .token-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
   @media (max-width: 700px) { main { grid-template-columns: 1fr; } .controls { grid-template-columns: 1fr; } .full-width { grid-column: 1; } }
 </style>
 </head>
@@ -144,6 +147,45 @@
   </div>
 
   <div class="card full-width">
+    <div class="card-title">註冊 Agent</div>
+    <div class="card-body">
+      <div class="controls">
+        <div class="control-group" style="grid-column:1/-1">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div>
+              <div class="row"><label>ID</label><input type="text" id="reg-id" placeholder="agent_ming"></div>
+              <div class="row"><label>名稱</label><input type="text" id="reg-name" placeholder="小明"></div>
+              <div class="row">
+                <label>類型</label>
+                <select id="reg-type">
+                  <option value="agent">agent（AI 角色）</option>
+                  <option value="player_avatar">player_avatar（玩家化身）</option>
+                  <option value="npc">npc</option>
+                </select>
+              </div>
+              <div class="row"><label>起始房間</label><select id="reg-room"></select></div>
+            </div>
+            <div>
+              <div class="row"><label>Webhook URL</label><input type="text" id="reg-webhook" value="http://127.0.0.1:3799/hooks/agent"></div>
+              <div class="row"><label>Webhook Token</label><input type="text" id="reg-token" placeholder="OpenClaw bearer token"></div>
+              <div class="row"><label>OpenClaw Agent ID</label><input type="text" id="reg-agent-id" placeholder="ming（對應 openclaw.json 裡的 id）"></div>
+            </div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+            <button onclick="registerAgent()">註冊 Agent</button>
+            <span style="color:var(--muted);font-size:11px">重複註冊同一個 id 會更新 webhook 設定</span>
+          </div>
+          <div id="reg-result" style="display:none;margin-top:10px">
+            <div class="token-label">✅ 註冊成功！auth_token（點擊複製）：</div>
+            <div class="token-box" id="reg-token-display" onclick="copyToken()"></div>
+            <div style="color:var(--muted);font-size:11px;margin-top:4px">存到 ~/.openclaw/workspace-XXX/world_config.json</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card full-width">
     <div class="card-title">事件日誌 <span style="color:var(--muted);font-size:11px">（自動更新）</span></div>
     <div class="card-body" id="log"></div>
   </div>
@@ -208,11 +250,13 @@ function renderSnapshot(s) {
       </div>
     `).join('');
 
-  // Populate room select
-  const roomSel = document.getElementById('obj-room');
-  const prev = roomSel.value;
-  roomSel.innerHTML = s.rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
-  if (prev) roomSel.value = prev;
+  // Populate room selects
+  ['obj-room', 'reg-room'].forEach(selId => {
+    const roomSel = document.getElementById(selId);
+    const prev = roomSel.value;
+    roomSel.innerHTML = s.rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    if (prev) roomSel.value = prev;
+  });
 
   // Populate entity select for say
   const entitySel = document.getElementById('say-entity');
@@ -274,6 +318,39 @@ async function spawnObject() {
   });
   if (r.ok) { toast(`已生成 ${name}`); fetchSnapshot(); }
   else { const d = await r.json(); toast(d.error || '失敗', true); }
+}
+
+async function registerAgent() {
+  const id = document.getElementById('reg-id').value.trim();
+  const name = document.getElementById('reg-name').value.trim();
+  const type = document.getElementById('reg-type').value;
+  const start_room = document.getElementById('reg-room').value;
+  const webhook_url = document.getElementById('reg-webhook').value.trim();
+  const webhook_token = document.getElementById('reg-token').value.trim();
+  const openclaw_agent_id = document.getElementById('reg-agent-id').value.trim();
+
+  if (!id || !name || !webhook_url || !start_room) {
+    toast('請填入 ID、名稱、Webhook URL 和起始房間', true); return;
+  }
+
+  const r = await fetch(`${BASE}/api/entities/register`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ id, name, type, webhook_url, webhook_token, openclaw_agent_id: openclaw_agent_id || id, start_room })
+  });
+  const data = await r.json();
+  if (r.ok && data.accepted) {
+    document.getElementById('reg-result').style.display = 'block';
+    document.getElementById('reg-token-display').textContent = data.auth_token;
+    toast(`${name} 註冊成功`);
+    fetchSnapshot();
+  } else {
+    toast(data.reason || '註冊失敗', true);
+  }
+}
+
+function copyToken() {
+  const token = document.getElementById('reg-token-display').textContent;
+  navigator.clipboard.writeText(token).then(() => toast('已複製 auth_token'));
 }
 
 async function sendSay() {
