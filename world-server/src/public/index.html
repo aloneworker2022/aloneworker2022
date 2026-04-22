@@ -176,9 +176,9 @@
             <span style="color:var(--muted);font-size:11px">重複註冊同一個 id 會更新 webhook 設定</span>
           </div>
           <div id="reg-result" style="display:none;margin-top:10px">
-            <div class="token-label">✅ 註冊成功！auth_token（點擊複製）：</div>
-            <div class="token-box" id="reg-token-display" onclick="copyToken()"></div>
-            <div style="color:var(--muted);font-size:11px;margin-top:4px">存到 ~/.openclaw/workspace-XXX/world_config.json</div>
+            <div class="token-label">✅ 註冊成功！點擊複製 world_config.json 內容：</div>
+            <div class="token-box" id="reg-token-display" onclick="copyToken()" style="white-space:pre"></div>
+            <div style="color:var(--muted);font-size:11px;margin-top:4px" id="reg-copy-hint"></div>
           </div>
         </div>
       </div>
@@ -339,8 +339,16 @@ async function registerAgent() {
   });
   const data = await r.json();
   if (r.ok && data.accepted) {
+    const worldConfig = {
+      entity_id: id,
+      auth_token: data.auth_token,
+      world_server_url: `${location.protocol}//${location.hostname}:3755`
+    };
+    const configJson = JSON.stringify(worldConfig, null, 2);
     document.getElementById('reg-result').style.display = 'block';
-    document.getElementById('reg-token-display').textContent = data.auth_token;
+    document.getElementById('reg-token-display').textContent = configJson;
+    document.getElementById('reg-copy-hint').textContent =
+      `存到 ~/.openclaw/workspace-${openclaw_agent_id || id}/world_config.json`;
     toast(`${name} 註冊成功`);
     fetchSnapshot();
   } else {
