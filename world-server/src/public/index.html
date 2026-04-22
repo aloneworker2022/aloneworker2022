@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦞 OpenClaw 世界管理員</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --border: #2a2d3e;
+    --text: #e2e8f0; --muted: #6b7280; --accent: #7c3aed;
+    --green: #10b981; --yellow: #f59e0b; --red: #ef4444; --blue: #3b82f6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; font-size: 14px; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 16px; }
+  #clock { margin-left: auto; color: var(--accent); font-weight: bold; }
+  #status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  #status-dot.offline { background: var(--red); }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
+  .full-width { grid-column: 1 / -1; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .card-title { padding: 8px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .card-body { padding: 12px 14px; }
+  .room { margin-bottom: 12px; }
+  .room-name { font-weight: bold; color: var(--accent); margin-bottom: 4px; }
+  .room-meta { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin: 2px; }
+  .tag-entity { background: #1e3a5f; color: #60a5fa; }
+  .tag-object { background: #1a2e1a; color: #4ade80; }
+  .tag-connection { background: #2d1f3d; color: #a78bfa; }
+  .entity-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .entity-row:last-child { border-bottom: none; }
+  .entity-name { font-weight: bold; min-width: 120px; }
+  .entity-room { color: var(--accent); min-width: 100px; }
+  .entity-action { color: var(--muted); flex: 1; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .online-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .online-dot.offline { background: var(--muted); }
+  .env-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .env-item label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 2px; }
+  .env-item value { font-weight: bold; }
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .control-group { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
+  .control-group h3 { font-size: 12px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .row label { color: var(--muted); font-size: 12px; min-width: 70px; }
+  input, select { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 4px 8px; border-radius: 4px; font-family: inherit; font-size: 13px; flex: 1; }
+  button { background: var(--accent); color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 13px; white-space: nowrap; }
+  button:hover { opacity: 0.85; }
+  button.danger { background: var(--red); }
+  button.info { background: var(--blue); }
+  #log { height: 200px; overflow-y: auto; font-size: 12px; color: var(--muted); }
+  .log-entry { padding: 3px 0; border-bottom: 1px solid var(--border); }
+  .log-entry .time { color: var(--yellow); margin-right: 6px; }
+  .log-entry .type { color: var(--blue); margin-right: 6px; }
+  .log-entry .actor { color: var(--green); margin-right: 6px; }
+  #toast { position: fixed; bottom: 20px; right: 20px; background: var(--green); color: white; padding: 8px 16px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  #toast.error { background: var(--red); }
+  #toast.show { opacity: 1; }
+  @media (max-width: 700px) { main { grid-template-columns: 1fr; } .controls { grid-template-columns: 1fr; } .full-width { grid-column: 1; } }
+</style>
+</head>
+<body>
+<header>
+  <div id="status-dot"></div>
+  <h1>🦞 OpenClaw 世界管理員</h1>
+  <div id="clock">載入中...</div>
+</header>
+<main>
+  <div class="card">
+    <div class="card-title">環境狀態</div>
+    <div class="card-body">
+      <div class="env-grid" id="env-grid">
+        <div class="env-item"><label>天氣</label><value id="env-weather">-</value></div>
+        <div class="env-item"><label>氣溫</label><value id="env-temp">-</value></div>
+        <div class="env-item"><label>戶外噪音</label><value id="env-noise">-</value></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">角色列表</div>
+    <div class="card-body" id="entities-list">-</div>
+  </div>
+
+  <div class="card full-width">
+    <div class="card-title">房間地圖</div>
+    <div class="card-body" id="rooms-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px"></div>
+  </div>
+
+  <div class="card full-width">
+    <div class="card-title">管理員控制台</div>
+    <div class="card-body">
+      <div class="controls">
+        <div class="control-group">
+          <h3>天氣設定</h3>
+          <div class="row">
+            <label>天氣</label>
+            <select id="weather-select">
+              <option value="sunny">晴天 ☀️</option>
+              <option value="cloudy">多雲 ☁️</option>
+              <option value="rainy">雨天 🌧️</option>
+            </select>
+          </div>
+          <div class="row">
+            <label>氣溫 (°C)</label>
+            <input type="number" id="weather-temp" value="25" min="-10" max="45">
+          </div>
+          <button onclick="setWeather()">套用天氣</button>
+        </div>
+
+        <div class="control-group">
+          <h3>時間快轉</h3>
+          <div class="row">
+            <label>分鐘</label>
+            <input type="number" id="ff-minutes" value="60" min="1" max="1440">
+          </div>
+          <div style="color:var(--muted);font-size:11px;margin-bottom:8px">世界分鐘（現實 1 分 = 世界 10 分）</div>
+          <button onclick="fastForward()" class="info">快轉時間</button>
+        </div>
+
+        <div class="control-group">
+          <h3>生成物件</h3>
+          <div class="row"><label>ID</label><input type="text" id="obj-id" placeholder="apple_2"></div>
+          <div class="row"><label>名稱</label><input type="text" id="obj-name" placeholder="蘋果"></div>
+          <div class="row"><label>房間</label>
+            <select id="obj-room"></select>
+          </div>
+          <div class="row">
+            <label>可消耗</label>
+            <select id="obj-consumable"><option value="true">是</option><option value="false">否</option></select>
+          </div>
+          <button onclick="spawnObject()">生成物件</button>
+        </div>
+
+        <div class="control-group">
+          <h3>快速說話</h3>
+          <div class="row"><label>角色</label><select id="say-entity"></select></div>
+          <div class="row"><label>內容</label><input type="text" id="say-content" placeholder="你好！"></div>
+          <button onclick="sendSay()" class="info">代為說話</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card full-width">
+    <div class="card-title">事件日誌 <span style="color:var(--muted);font-size:11px">（自動更新）</span></div>
+    <div class="card-body" id="log"></div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const BASE = '';
+let lastSnapshot = null;
+let adminToken = null;
+
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = isError ? 'error show' : 'show';
+  setTimeout(() => el.className = '', 2500);
+}
+
+async function fetchSnapshot() {
+  try {
+    const r = await fetch(`${BASE}/api/admin/snapshot`);
+    if (!r.ok) throw new Error(r.status);
+    lastSnapshot = await r.json();
+    renderSnapshot(lastSnapshot);
+    document.getElementById('status-dot').className = '';
+  } catch {
+    document.getElementById('status-dot').className = 'offline';
+    document.getElementById('clock').textContent = '離線';
+  }
+}
+
+function renderSnapshot(s) {
+  document.getElementById('clock').textContent = s.time_label + ' · Day ' + s.world_time.day;
+
+  const w = s.environment;
+  const weatherEmoji = { sunny: '☀️', cloudy: '☁️', rainy: '🌧️' }[w.weather] ?? '';
+  document.getElementById('env-weather').textContent = weatherEmoji + ' ' + w.weather;
+  document.getElementById('env-temp').textContent = w.outdoor_temperature + '°C';
+  document.getElementById('env-noise').textContent = w.outdoor_noise_level;
+
+  // Rooms
+  const roomEl = document.getElementById('rooms-grid');
+  roomEl.innerHTML = s.rooms.map(room => `
+    <div class="room">
+      <div class="room-name">${room.name} <span style="color:var(--muted);font-size:11px">(${room.id})</span></div>
+      <div class="room-meta">→ ${room.connections.map(c => `<span class="tag tag-connection">${c}</span>`).join('')}</div>
+      <div>${room.entities.map(e => `<span class="tag tag-entity">👤 ${e}</span>`).join('')}</div>
+      <div>${room.portable_objects.map(o => `<span class="tag tag-object">📦 ${o}</span>`).join('')}</div>
+    </div>
+  `).join('');
+
+  // Entities
+  const entEl = document.getElementById('entities-list');
+  entEl.innerHTML = s.entities.length === 0 ? '<span style="color:var(--muted)">無已註冊角色</span>' :
+    s.entities.map(e => `
+      <div class="entity-row">
+        <div class="online-dot ${e.online ? '' : 'offline'}"></div>
+        <div class="entity-name">${e.name} <span style="color:var(--muted);font-size:11px">(${e.type})</span></div>
+        <div class="entity-room">${e.room}</div>
+        <div class="entity-action">${e.action || '閒置'}</div>
+      </div>
+    `).join('');
+
+  // Populate room select
+  const roomSel = document.getElementById('obj-room');
+  const prev = roomSel.value;
+  roomSel.innerHTML = s.rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  if (prev) roomSel.value = prev;
+
+  // Populate entity select for say
+  const entitySel = document.getElementById('say-entity');
+  const prevE = entitySel.value;
+  entitySel.innerHTML = s.entities.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+  if (prevE) entitySel.value = prevE;
+}
+
+async function fetchLog() {
+  try {
+    const r = await fetch(`${BASE}/api/state/history?limit=40`);
+    if (!r.ok) return;
+    const data = await r.json();
+    const logEl = document.getElementById('log');
+    const events = (data.events ?? []).reverse();
+    logEl.innerHTML = events.length === 0 ? '<span style="color:var(--muted)">尚無事件</span>' :
+      events.map(ev => `
+        <div class="log-entry">
+          <span class="time">Day${ev.world_time?.day} ${String(ev.world_time?.hour).padStart(2,'0')}:${String(ev.world_time?.minute).padStart(2,'0')}</span>
+          <span class="type">${ev.type}</span>
+          <span class="actor">${ev.actor_id !== '__world__' ? ev.actor_id : ''}</span>
+          <span>${JSON.stringify(ev.payload).slice(0,80)}</span>
+        </div>
+      `).join('');
+    logEl.scrollTop = logEl.scrollHeight;
+  } catch {}
+}
+
+async function setWeather() {
+  const weather = document.getElementById('weather-select').value;
+  const temperature = parseInt(document.getElementById('weather-temp').value);
+  const r = await fetch(`${BASE}/api/admin/set_weather`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ weather, temperature })
+  });
+  if (r.ok) { toast('天氣已更新'); fetchSnapshot(); }
+  else toast('失敗', true);
+}
+
+async function fastForward() {
+  const world_minutes = parseInt(document.getElementById('ff-minutes').value);
+  const r = await fetch(`${BASE}/api/admin/fast_forward`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ world_minutes })
+  });
+  if (r.ok) { const d = await r.json(); toast(`快轉完成：${d.world_minutes_elapsed} 世界分鐘`); fetchSnapshot(); }
+  else toast('失敗', true);
+}
+
+async function spawnObject() {
+  const id = document.getElementById('obj-id').value.trim();
+  const name = document.getElementById('obj-name').value.trim();
+  const location = document.getElementById('obj-room').value;
+  const consumable = document.getElementById('obj-consumable').value === 'true';
+  if (!id || !name) { toast('請填入 ID 和名稱', true); return; }
+  const r = await fetch(`${BASE}/api/admin/spawn_object`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ id, name, location, consumable, affordances: consumable ? ['eat'] : ['use'] })
+  });
+  if (r.ok) { toast(`已生成 ${name}`); fetchSnapshot(); }
+  else { const d = await r.json(); toast(d.error || '失敗', true); }
+}
+
+async function sendSay() {
+  const entity_id = document.getElementById('say-entity').value;
+  const content = document.getElementById('say-content').value.trim();
+  if (!entity_id || !content) { toast('請選擇角色並輸入內容', true); return; }
+
+  const entity = lastSnapshot?.entities?.find(e => e.id === entity_id);
+  if (!entity) { toast('找不到角色', true); return; }
+
+  // Need auth_token - use the admin say endpoint if available, else show hint
+  toast('說話需要 auth_token，請使用 POST /api/actions', true);
+}
+
+// Refresh every 5 seconds
+fetchSnapshot();
+fetchLog();
+setInterval(fetchSnapshot, 5000);
+setInterval(fetchLog, 8000);
+</script>
+</body>
+</html>

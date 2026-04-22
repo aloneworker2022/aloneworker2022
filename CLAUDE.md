@@ -5,7 +5,7 @@
 ## 專案結構
 
 ```
-world-server/    Node.js/TypeScript 世界伺服器，port 3000
+world-server/    Node.js/TypeScript 世界伺服器，port 3755
 agents/ming/     小明 agent 的 OpenClaw workspace 設定
 agents/player/   玩家化身的 OpenClaw workspace 設定
 ```
@@ -21,8 +21,13 @@ npm run dev
 
 驗收：
 ```bash
-curl http://127.0.0.1:3000/health
-curl http://127.0.0.1:3000/api/admin/snapshot
+curl http://127.0.0.1:3755/health
+curl http://127.0.0.1:3755/api/admin/snapshot
+```
+
+Admin Web UI（瀏覽器直接開）：
+```
+http://<RPi5-IP>:3755/
 ```
 
 ### Phase 2: 設定 Player Avatar (OpenClaw)
@@ -41,7 +46,7 @@ cp -r agents/player/* ~/.openclaw/workspace-player/
 
 3. 向世界伺服器註冊化身：
 ```bash
-curl -X POST http://127.0.0.1:3000/api/entities/register \
+curl -X POST http://127.0.0.1:3755/api/entities/register \
   -H "Content-Type: application/json" \
   -d '{
     "id": "player_avatar",

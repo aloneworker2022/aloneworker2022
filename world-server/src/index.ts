@@ -1,5 +1,7 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { loadState, getState } from './world-state.js';
 import { startClock, onTick, getTimePeriod, timePeriodName, formatWorldTime } from './clock.js';
 import { initEventLog, appendEvent } from './event-log.js';
@@ -11,7 +13,7 @@ import { stateRouter } from './routes/state.js';
 import { adminRouter } from './routes/admin.js';
 import type { WorldTime, WorldEvent } from './types.js';
 
-const PORT = parseInt(process.env['PORT'] ?? '3000', 10);
+const PORT = parseInt(process.env['PORT'] ?? '3755', 10);
 
 // Boot
 const state = loadState();
@@ -22,6 +24,9 @@ console.log(`[World] Loaded. Current time: ${formatWorldTime(state.clock)}`);
 const app = express();
 app.use(express.json());
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+app.use(express.static(join(__dirname, 'public')));
+
 app.use('/api/actions', actionsRouter);
 app.use('/api/entities', entitiesRouter);
 app.use('/api/state', stateRouter);
@@ -29,6 +34,7 @@ app.use('/api/history', stateRouter);  // stateRouter also handles /history
 app.use('/api/admin', adminRouter);
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
+app.get('/', (_req, res) => res.redirect('/index.html'));
 
 // Tick handler
 let previousPeriod = getTimePeriod(state.clock);
@@ -85,8 +91,8 @@ onTick(async (worldTime: WorldTime, previousTime: WorldTime) => {
   }
 });
 
-app.listen(PORT, '127.0.0.1', () => {
-  console.log(`[World] Server started on http://127.0.0.1:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`[World] Server started on http://0.0.0.0:${PORT}`);
   startClock();
   console.log(`[World] Clock started. ${Object.keys(getState().entities).length} entities registered.`);
 });
