@@ -31,7 +31,8 @@ export async function pushPerception(entity: Entity, perception: PerceptionEvent
   if (!entity.webhook_url || !entity.online) return;
 
   const message = `WORLD_EVENT:${JSON.stringify(perception)}`;
-  const body = { message, channel: 'world' };
+  const body: Record<string, string> = { message, channel: 'world' };
+  if (entity.openclaw_agent_id) body['agentId'] = entity.openclaw_agent_id;
 
   const ok = await postWithRetry(entity.webhook_url, entity.webhook_token, body);
   if (!ok) {

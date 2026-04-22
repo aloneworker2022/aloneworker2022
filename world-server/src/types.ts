@@ -53,6 +53,7 @@ export interface Entity {
   inventory: string[];
   webhook_url: string;
   webhook_token: string;
+  openclaw_agent_id: string;  // agentId param for POST /hooks/agent routing
   auth_token: string;
   online: boolean;
 }

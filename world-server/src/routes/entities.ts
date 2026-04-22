@@ -7,7 +7,7 @@ import { getRoom } from '../world-state.js';
 export const entitiesRouter = Router();
 
 entitiesRouter.post('/register', (req, res) => {
-  const { id, name, type, webhook_url, webhook_token, start_room } = req.body as Partial<Entity> & { start_room?: string };
+  const { id, name, type, webhook_url, webhook_token, openclaw_agent_id, start_room } = req.body as Partial<Entity> & { start_room?: string };
 
   if (!id || !name || !type || !webhook_url || !start_room) {
     res.status(400).json({ accepted: false, reason: 'Missing required fields: id, name, type, webhook_url, start_room' });
@@ -29,6 +29,7 @@ entitiesRouter.post('/register', (req, res) => {
     // Re-registration: update webhook and mark online
     existing.webhook_url = webhook_url;
     existing.webhook_token = webhook_token ?? '';
+    existing.openclaw_agent_id = openclaw_agent_id ?? existing.openclaw_agent_id;
     setEntityOnline(id, true);
     res.json({ accepted: true, auth_token: existing.auth_token, entity: existing });
     return;
@@ -42,6 +43,7 @@ entitiesRouter.post('/register', (req, res) => {
     inventory: [],
     webhook_url,
     webhook_token: webhook_token ?? '',
+    openclaw_agent_id: openclaw_agent_id ?? id,
     auth_token,
     online: true,
   };

@@ -30,45 +30,77 @@ Admin Web UI（瀏覽器直接開）：
 http://<RPi5-IP>:3755/
 ```
 
-### Phase 2: 設定 Player Avatar (OpenClaw)
+### Phase 2: 設定 OpenClaw Agents
 
-1. 複製 `agents/player/` 到你的 OpenClaw workspace：
-```bash
-cp -r agents/player/* ~/.openclaw/workspace-player/
-```
+**架構說明：** 所有 agent 共用同一個 OpenClaw 實例（同一個 port 18789）。
+World Server 用 `agentId` 參數告訴 OpenClaw 這次要跑哪個角色。
 
-2. 在 OpenClaw 的 `~/.openclaw/openclaw.json` 設定：
+#### 2a. 在 OpenClaw 設定多個 agent
+
+在 `~/.openclaw/openclaw.json` 加入：
 ```json
 {
-  "gateway": { "port": 18790 }
+  "agents": {
+    "list": [
+      { "id": "player", "name": "玩家化身", "workspace": "~/.openclaw/workspace-player" },
+      { "id": "ming",   "name": "小明",     "workspace": "~/.openclaw/workspace-ming" }
+    ]
+  }
 }
 ```
 
-3. 向世界伺服器註冊化身：
+#### 2b. 複製 skill 設定到各 workspace
+
 ```bash
+cp -r agents/player/* ~/.openclaw/workspace-player/
+cp -r agents/ming/*   ~/.openclaw/workspace-ming/
+```
+
+#### 2c. 向世界伺服器註冊（兩個 agent 用同一個 webhook_url）
+
+```bash
+# 玩家化身
 curl -X POST http://127.0.0.1:3755/api/entities/register \
   -H "Content-Type: application/json" \
   -d '{
     "id": "player_avatar",
     "name": "你的名字",
     "type": "player_avatar",
-    "webhook_url": "http://127.0.0.1:18790/hooks/agent",
+    "webhook_url": "http://127.0.0.1:18789/hooks/agent",
     "webhook_token": "YOUR_OPENCLAW_TOKEN",
+    "openclaw_agent_id": "player",
+    "start_room": "living_room"
+  }'
+
+# 小明
+curl -X POST http://127.0.0.1:3755/api/entities/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "agent_ming",
+    "name": "小明",
+    "type": "agent",
+    "webhook_url": "http://127.0.0.1:18789/hooks/agent",
+    "webhook_token": "YOUR_OPENCLAW_TOKEN",
+    "openclaw_agent_id": "ming",
     "start_room": "living_room"
   }'
 ```
 
-4. 儲存回傳的 auth_token：
+World Server 推送事件時會自動帶 `agentId`，OpenClaw 就知道這次用哪個角色的 workspace 跑。
+
+#### 2d. 儲存各自的 auth_token
+
 ```bash
 echo '{"entity_id":"player_avatar","auth_token":"TOKEN_HERE"}' \
   > ~/.openclaw/workspace-player/world_config.json
+
+echo '{"entity_id":"agent_ming","auth_token":"TOKEN_HERE"}' \
+  > ~/.openclaw/workspace-ming/world_config.json
 ```
 
-5. 設定 Telegram Bot，在 OpenClaw config 加入 telegram channel
+#### 2e. 設定 Telegram Bot（玩家化身用）
 
-### Phase 3: 設定小明 Agent
-
-類似步驟，但使用 `agents/ming/` 和 port 18789。
+在 OpenClaw config 加入 telegram channel，對應 player workspace。
 
 ## API 速查
 
