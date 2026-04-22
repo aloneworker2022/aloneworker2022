@@ -50,6 +50,7 @@ Tracked in \`body_state.json\`. Key fields:
 - hunger (0-100): >70 = hungry, >90 = very hungry
 - fatigue (0-100): >70 = tired, >90 = exhausted
 - boredom (0-100): >60 = wants stimulation
+- sexual_need (0-100): >70 = restless, seeks closeness; reduced by intimate interactions
 - mood (-100 to 100)`}
 `;
 }
@@ -221,7 +222,7 @@ Manages \`body_state.json\` in your workspace.
 \`\`\`json
 {
   "hunger": 0, "thirst": 0, "fatigue": 0,
-  "mood": 50, "social_need": 30, "boredom": 20,
+  "mood": 50, "social_need": 30, "boredom": 20, "sexual_need": 10,
   "last_tick_world_time": {"day": 1, "hour": 7, "minute": 0},
   "last_ate_at": null, "last_slept_at": null, "last_chatted_at": null
 }
@@ -232,7 +233,7 @@ All values 0–100 except mood (−100 to 100).
 ## Plant Brain: Tick Update (per world minute)
 
 \`\`\`
-hunger  += 0.15   thirst += 0.2   fatigue += 0.08   boredom += 0.1   social_need += 0.05
+hunger  += 0.15   thirst += 0.2   fatigue += 0.08   boredom += 0.1   social_need += 0.05   sexual_need += 0.03
 \`\`\`
 
 If sleeping: fatigue -= 1.5, hunger += 0.05 (slower)
@@ -246,6 +247,7 @@ If sleeping: fatigue -= 1.5, hunger += 0.05 (slower)
 | Slept 8h | fatigue = 0 |
 | Said something | social_need -= 15, mood += 5 |
 | Was addressed | social_need -= 10, mood += 3 |
+| Intimate interaction (whisper, gesture to someone) | sexual_need -= 20, mood += 8 |
 | Read book | boredom -= 20 |
 
 ## Urgency Thresholds
@@ -257,6 +259,7 @@ If sleeping: fatigue -= 1.5, hunger += 0.05 (slower)
 | fatigue > 85 and hour >= 22 | go to bed |
 | fatigue > 95 | go to bed immediately |
 | boredom > 80 | seek stimulation |
+| sexual_need > 80 | feel restless, seek closeness with someone nearby |
 
 ## Steps
 

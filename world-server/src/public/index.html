@@ -562,6 +562,7 @@ async function refreshBodyStates() {
       ${bar('疲勞', bs.fatigue)}
       ${bar('無聊', bs.boredom)}
       ${bar('社交需求', bs.social_need)}
+      ${bar('性需求', bs.sexual_need ?? 0)}
       ${bar('心情', moodPct, 100, () => moodColor(bs.mood))}
     </div>`;
   }));
