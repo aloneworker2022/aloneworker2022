@@ -196,8 +196,13 @@
         <span style="color:var(--muted);font-size:11px">重複註冊同一 id 會更新 webhook 設定並刷新憑證</span>
       </div>
       <div id="reg-result" style="display:none;margin-top:12px;padding:10px;background:var(--bg);border:1px solid var(--green);border-radius:6px">
-        <div style="color:var(--green);font-size:12px;margin-bottom:4px">✅ 已註冊並儲存憑證到此瀏覽器</div>
-        <div id="reg-summary" style="font-size:12px;color:var(--muted)"></div>
+        <div style="color:var(--green);font-size:12px;margin-bottom:8px">✅ 已註冊並儲存憑證到此瀏覽器</div>
+        <div id="reg-summary" style="font-size:12px;color:var(--muted);margin-bottom:10px"></div>
+        <div style="font-size:11px;color:var(--yellow);margin-bottom:4px">
+          📋 複製以下內容，貼到 <span id="reg-filepath" style="color:var(--text)"></span>
+        </div>
+        <pre id="reg-json-display" style="background:#0a0c12;border:1px solid var(--border);border-radius:4px;padding:10px;font-size:12px;color:var(--green);cursor:pointer;white-space:pre" onclick="copyWorldConfig()" title="點擊複製"></pre>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">點擊上方內容即可複製</div>
       </div>
     </div>
   </div>
@@ -435,16 +440,31 @@ async function registerAgent() {
 
   if (r.ok && data.accepted) {
     saveCred(id, data.auth_token);
+
+    const worldConfig = {
+      entity_id: id,
+      auth_token: data.auth_token,
+      world_server_url: `${location.protocol}//${location.hostname}:3755`
+    };
+    const agentId = openclaw_agent_id || id;
+    const filePath = `~/.openclaw/workspace-${agentId}/world_config.json`;
+
     document.getElementById('reg-result').style.display = 'block';
     document.getElementById('reg-summary').innerHTML =
       `entity_id: <b style="color:var(--accent)">${id}</b> &nbsp;·&nbsp; ` +
-      `OpenClaw agentId: <b style="color:var(--accent)">${openclaw_agent_id || id}</b> &nbsp;·&nbsp; ` +
-      `<span style="color:var(--green)">auth_token 已存入瀏覽器憑證</span>`;
+      `OpenClaw agentId: <b style="color:var(--accent)">${agentId}</b>`;
+    document.getElementById('reg-filepath').textContent = filePath;
+    document.getElementById('reg-json-display').textContent = JSON.stringify(worldConfig, null, 2);
     toast(`${name} 已註冊`);
     fetchSnapshot();
   } else {
     toast(data.reason || '註冊失敗', true);
   }
+}
+
+function copyWorldConfig() {
+  const content = document.getElementById('reg-json-display').textContent;
+  navigator.clipboard.writeText(content).then(() => toast('已複製！貼到 world_config.json'));
 }
 
 // --- Init ---
