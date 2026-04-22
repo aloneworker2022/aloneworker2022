@@ -5,6 +5,7 @@ import { getWorldTime, formatWorldTime, getTimePeriod, timePeriodName, startCloc
 import { appendEvent } from '../event-log.js';
 import { computePerceptions } from '../perception-filter.js';
 import { pushPerception } from '../webhook-pusher.js';
+import { scaffoldAgent } from '../scaffold.js';
 import type { Weather } from '../types.js';
 
 export const adminRouter = Router();
@@ -74,6 +75,27 @@ adminRouter.post('/fast_forward', async (req, res) => {
   startClock();
 
   res.json({ ok: true, from: fromTime, to: toTime, world_minutes_elapsed: world_minutes });
+});
+
+adminRouter.post('/scaffold_agent', (req, res) => {
+  const { entity_id, name, type, auth_token, world_server_url, workspace_path } = req.body as {
+    entity_id: string; name: string; type: string;
+    auth_token: string; world_server_url: string; workspace_path?: string;
+  };
+
+  if (!entity_id || !name || !type || !auth_token || !world_server_url) {
+    res.status(400).json({ error: 'Missing required fields' }); return;
+  }
+
+  try {
+    const result = scaffoldAgent({
+      entity_id, name, auth_token, world_server_url, workspace_path,
+      type: type as 'agent' | 'player_avatar' | 'npc',
+    });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
 });
 
 adminRouter.post('/spawn_object', (req, res) => {

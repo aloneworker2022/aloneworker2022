@@ -191,18 +191,34 @@
           <div class="row"><label>OpenClaw Agent ID</label><input type="text" id="reg-agent-id" placeholder="ming"></div>
         </div>
       </div>
-      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
-        <button onclick="registerAgent()" class="success">註冊 Agent</button>
-        <span style="color:var(--muted);font-size:11px">重複註冊同一 id 會更新 webhook 設定並刷新憑證</span>
+      <div class="row" style="margin-top:8px">
+        <label>Workspace 路徑</label>
+        <input type="text" id="reg-workspace" placeholder="選填：/home/aw/.openclaw/workspace-ming（填了會直接寫入）">
       </div>
-      <div id="reg-result" style="display:none;margin-top:12px;padding:10px;background:var(--bg);border:1px solid var(--green);border-radius:6px">
-        <div style="color:var(--green);font-size:12px;margin-bottom:8px">✅ 已註冊並儲存憑證到此瀏覽器</div>
-        <div id="reg-summary" style="font-size:12px;color:var(--muted);margin-bottom:10px"></div>
-        <div style="font-size:11px;color:var(--yellow);margin-bottom:4px">
-          📋 複製以下內容，貼到 <span id="reg-filepath" style="color:var(--text)"></span>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <button onclick="registerAgent()" class="success">註冊並建立 Agent 檔案</button>
+        <span style="color:var(--muted);font-size:11px">重複註冊同一 id 會更新設定</span>
+      </div>
+      <div id="reg-result" style="display:none;margin-top:12px;padding:12px;background:var(--bg);border:1px solid var(--green);border-radius:6px">
+        <div style="color:var(--green);font-size:13px;font-weight:bold;margin-bottom:8px">✅ 已完成</div>
+        <div id="reg-summary" style="font-size:12px;color:var(--muted);margin-bottom:12px"></div>
+        <div id="reg-workspace-done" style="display:none;color:var(--green);font-size:12px;margin-bottom:8px">
+          📁 已直接寫入你的 OpenClaw workspace，可以直接啟動。
         </div>
-        <pre id="reg-json-display" style="background:#0a0c12;border:1px solid var(--border);border-radius:4px;padding:10px;font-size:12px;color:var(--green);cursor:pointer;white-space:pre" onclick="copyWorldConfig()" title="點擊複製"></pre>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">點擊上方內容即可複製</div>
+        <div id="reg-copy-section">
+          <div style="font-size:11px;color:var(--yellow);margin-bottom:6px">
+            📋 沒有填 workspace 路徑的話，請手動複製以下資料夾到你的 OpenClaw workspace：
+          </div>
+          <div style="background:#0a0c12;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:12px;margin-bottom:6px">
+            <div style="color:var(--muted);margin-bottom:4px">來源（在這台 RPi 上）：</div>
+            <code id="reg-staging-path" style="color:var(--accent)"></code>
+          </div>
+          <div style="background:#0a0c12;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:12px;margin-bottom:4px">
+            <div style="color:var(--muted);margin-bottom:4px">複製指令：</div>
+            <code id="reg-copy-cmd" style="color:var(--text)"></code>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">包含：world_config.json、AGENTS.md、SOUL.md、IDENTITY.md、skills/</div>
+        </div>
       </div>
     </div>
   </div>
@@ -427,44 +443,55 @@ async function registerAgent() {
   const webhook_url = document.getElementById('reg-webhook').value.trim();
   const webhook_token = document.getElementById('reg-token').value.trim();
   const openclaw_agent_id = document.getElementById('reg-agent-id').value.trim();
+  const workspace_path = document.getElementById('reg-workspace').value.trim();
 
   if (!id || !name || !webhook_url || !start_room) {
     toast('請填入 Entity ID、名稱、Webhook URL 和起始房間', true); return;
   }
 
+  // 1. 向 World Server 註冊 entity
   const r = await fetch(`${BASE}/api/entities/register`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, name, type, webhook_url, webhook_token, openclaw_agent_id: openclaw_agent_id || id, start_room })
   });
   const data = await r.json();
+  if (!r.ok || !data.accepted) { toast(data.reason || '註冊失敗', true); return; }
 
-  if (r.ok && data.accepted) {
-    saveCred(id, data.auth_token);
+  // 2. 存憑證到 localStorage
+  saveCred(id, data.auth_token);
 
-    const worldConfig = {
-      entity_id: id,
-      auth_token: data.auth_token,
-      world_server_url: `${location.protocol}//${location.hostname}:3755`
-    };
-    const agentId = openclaw_agent_id || id;
-    const filePath = `~/.openclaw/workspace-${agentId}/world_config.json`;
+  // 3. 讓 server scaffold agent 資料夾（含 world_config.json 和所有 skills）
+  const world_server_url = `${location.protocol}//${location.hostname}:3755`;
+  const sr = await fetch(`${BASE}/api/admin/scaffold_agent`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entity_id: id, name, type, auth_token: data.auth_token, world_server_url, workspace_path: workspace_path || undefined })
+  });
+  const sd = await sr.json();
 
-    document.getElementById('reg-result').style.display = 'block';
-    document.getElementById('reg-summary').innerHTML =
-      `entity_id: <b style="color:var(--accent)">${id}</b> &nbsp;·&nbsp; ` +
-      `OpenClaw agentId: <b style="color:var(--accent)">${agentId}</b>`;
-    document.getElementById('reg-filepath').textContent = filePath;
-    document.getElementById('reg-json-display').textContent = JSON.stringify(worldConfig, null, 2);
-    toast(`${name} 已註冊`);
-    fetchSnapshot();
-  } else {
-    toast(data.reason || '註冊失敗', true);
+  // 4. 顯示結果
+  const agentId = openclaw_agent_id || id;
+  document.getElementById('reg-result').style.display = 'block';
+  document.getElementById('reg-summary').innerHTML =
+    `entity_id: <b style="color:var(--accent)">${id}</b> &nbsp;·&nbsp; ` +
+    `OpenClaw agentId: <b style="color:var(--accent)">${agentId}</b> &nbsp;·&nbsp; 憑證已存入瀏覽器`;
+
+  if (sr.ok && sd.ok) {
+    const workspaceDone = document.getElementById('reg-workspace-done');
+    const copySection = document.getElementById('reg-copy-section');
+    if (sd.workspace_written) {
+      workspaceDone.style.display = 'block';
+      copySection.style.display = 'none';
+    } else {
+      workspaceDone.style.display = 'none';
+      copySection.style.display = 'block';
+      const targetPath = `~/.openclaw/workspace-${agentId}`;
+      document.getElementById('reg-staging-path').textContent = sd.staging_path;
+      document.getElementById('reg-copy-cmd').textContent = `cp -r ${sd.staging_path}/* ${targetPath}/`;
+    }
   }
-}
 
-function copyWorldConfig() {
-  const content = document.getElementById('reg-json-display').textContent;
-  navigator.clipboard.writeText(content).then(() => toast('已複製！貼到 world_config.json'));
+  toast(`${name} 已完成設定`);
+  fetchSnapshot();
 }
 
 // --- Init ---
