@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cthulhu-note"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "prompt_toolkit>=3.0",
+    "httpx",
+    "click",
+]
+
+[project.scripts]
+cthulhu-note = "cthulhu_note.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cthulhu_note*"]
