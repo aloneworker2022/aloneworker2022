@@ -10,6 +10,7 @@ dependencies = [
     "prompt_toolkit>=3.0",
     "httpx",
     "click",
+    "rich>=13.0",
 ]
 
 [project.scripts]

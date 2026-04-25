@@ -1,4 +1,7 @@
-from prompt_toolkit.formatted_text import FormattedText
+import shutil
+from io import StringIO
+
+from prompt_toolkit.formatted_text import ANSI, FormattedText
 from prompt_toolkit.layout.containers import (
     ConditionalContainer,
     HSplit,
@@ -7,6 +10,9 @@ from prompt_toolkit.layout.containers import (
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.filters import Condition
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text as RichText
 
 from cthulhu_note.state import AppState, Mode
 
@@ -62,6 +68,20 @@ def _hints(state: AppState) -> str:
     return ""
 
 
+_LEVEL_COLORS = {0: "cyan", 1: "yellow", 2: "magenta"}
+
+
+def _card_panel(card) -> ANSI:
+    width = shutil.get_terminal_size((80, 24)).columns
+    buf = StringIO()
+    console = Console(file=buf, force_terminal=True, width=max(width - 2, 20))
+    border = _LEVEL_COLORS.get(card.level, "white")
+    content = RichText(card.content, style="bold white")
+    panel = Panel(content, title=f"[dim]Lv{card.level}[/dim]", border_style=border)
+    console.print(panel)
+    return ANSI(buf.getvalue())
+
+
 # ── content builders ─────────────────────────────────────────────────────────
 
 
@@ -99,13 +119,7 @@ def make_body_text(state: AppState):
     if state.mode in (Mode.PROCESS, Mode.CUT, Mode.S_TAG):
         card = state.current_card
         if card:
-            lv_tag = f"Lv{card.level}"
-            return FormattedText([
-                ("", "\n\n"),
-                ("ansigray", f"  [{lv_tag}]\n"),
-                ("bold", f"  {card.content}\n"),
-                ("", "\n"),
-            ])
+            return _card_panel(card)
         return FormattedText([("ansigray", "\n\n  （無卡片）\n\n")])
 
     # INPUT mode
