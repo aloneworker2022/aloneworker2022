@@ -139,7 +139,6 @@ def build_layout(state: AppState) -> Layout:
     sep_top = Window(height=1, char="─")
     body = Window(
         content=FormattedTextControl(lambda: make_body_text(state)),
-        height=8,
     )
     sep_bot = Window(height=1, char="─")
     footer = Window(
