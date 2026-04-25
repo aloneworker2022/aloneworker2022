@@ -5,6 +5,8 @@ import click
 
 from cthulhu_note import config as config_mod
 from cthulhu_note import storage
+from cthulhu_note.config import Config
+from cthulhu_note.memos import MemosClient
 from cthulhu_note.state import Mode
 
 
@@ -24,6 +26,7 @@ def main(ctx, use_json):
         return
 
     cfg = config_mod.load()
+    cfg = _check_and_setup_memos(cfg)
     from cthulhu_note.app import build_app
     app = build_app(cfg, start_mode=Mode.INPUT)
     app.run()
@@ -55,6 +58,7 @@ def today():
 def process_cmd():
     """直接進入處理狀態"""
     cfg = config_mod.load()
+    cfg = _check_and_setup_memos(cfg)
     from cthulhu_note.app import build_app
     app = build_app(cfg, start_mode=Mode.PROCESS)
     app.run()
@@ -83,6 +87,56 @@ def _json_list():
             "memos_id": item.memos_id,
         })
     click.echo(json.dumps(out, ensure_ascii=False, indent=2))
+
+
+def _memos_setup_wizard(cfg: Config) -> Config:
+    """對話式設定 Memos 連線，成功後寫回設定檔並回傳更新後的 Config。"""
+    click.echo("")
+    click.echo("── Memos 設定精靈 ──────────────────────")
+
+    while True:
+        url = click.prompt(
+            f"Memos 網址",
+            default=cfg.memos_url,
+        ).strip().rstrip("/")
+
+        token = click.prompt("Access token", hide_input=True).strip()
+
+        click.echo("正在測試連線…", nl=False)
+        client = MemosClient(url, token)
+        ok = client.test_connection()
+
+        if ok:
+            click.echo(" 連線成功！")
+            cfg.memos_url = url
+            cfg.memos_token = token
+            config_mod.save(cfg)
+            click.echo(f"設定已寫入 {config_mod._resolve()}")
+            click.echo("────────────────────────────────────")
+            click.echo("")
+            return cfg
+        else:
+            click.echo(" 連線失敗。")
+            retry = click.confirm("要重新輸入嗎？", default=True)
+            if not retry:
+                click.echo("跳過設定，Lv1 完成功能本次停用。")
+                click.echo("────────────────────────────────────")
+                click.echo("")
+                return cfg
+
+
+def _check_and_setup_memos(cfg: Config) -> Config:
+    """啟動時檢查 Memos 連線，失敗則進入設定精靈。"""
+    if not cfg.memos_token:
+        click.echo("尚未設定 Memos token，進入設定精靈…")
+        return _memos_setup_wizard(cfg)
+
+    client = MemosClient(cfg.memos_url, cfg.memos_token)
+    if not client.test_connection():
+        click.echo(f"Memos 無法連線（{cfg.memos_url}），進入設定精靈…")
+        return _memos_setup_wizard(cfg)
+
+    return cfg
 
 
 def _text_list():

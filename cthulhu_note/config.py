@@ -2,6 +2,7 @@ import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 CONFIG_PATH = Path("~/.config/cthulhu-note/config.toml")
 
@@ -34,14 +35,30 @@ def _resolve() -> Path:
     return CONFIG_PATH.expanduser()
 
 
+def save(config: Config) -> None:
+    path = _resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = f"""\
+[memos]
+url = "{config.memos_url}"
+token = "{config.memos_token}"
+
+[data]
+csv_path = "{config.csv_path}"
+
+[display]
+lv3_flash_enabled = {str(config.lv3_flash_enabled).lower()}
+lv3_flash_probability = {config.lv3_flash_probability}
+lv3_flash_duration = {config.lv3_flash_duration}
+"""
+    path.write_text(content, encoding="utf-8")
+
+
 def load() -> Config:
     path = _resolve()
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(DEFAULT_TOML, encoding="utf-8")
-        print(f"設定檔已建立：{path}")
-        print("請填入 Memos access token 後重新執行。")
-        sys.exit(0)
 
     with open(path, "rb") as f:
         data = tomllib.load(f)
