@@ -48,4 +48,4 @@ class AppState:
         return [i for i in self.items if i.level == 1 and i.pinned]
 
     def cards_for_level(self, level: int) -> list[BujoItem]:
-        return [i for i in self.items if i.level == level]
+        return [i for i in self.items if i.level == level and not i.pinned]
