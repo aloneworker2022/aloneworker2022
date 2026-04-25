@@ -13,8 +13,8 @@ class MemosClient:
 
     def test_connection(self) -> bool:
         try:
-            r = httpx.get(
-                f"{self.url}/api/v1/me",
+            r = httpx.post(
+                f"{self.url}/api/v1/auth/status",
                 headers=self._headers,
                 timeout=5,
             )
