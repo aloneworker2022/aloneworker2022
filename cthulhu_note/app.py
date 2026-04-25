@@ -78,7 +78,7 @@ class Handlers:
     # ── INPUT ─────────────────────────────────────────────────────────────────
 
     def input_char(self, ch: str):
-        if ch and len(ch) == 1 and ch.isprintable():
+        if ch and ch.isprintable():
             self._state.input_buffer += ch
             self._state.message = ""
             self._invalidate()
