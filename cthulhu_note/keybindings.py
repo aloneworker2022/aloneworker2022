@@ -94,6 +94,10 @@ def build_bindings(state: AppState, handlers) -> KeyBindings:
         handlers.process_tab()
 
     # ── PROCESS Lv2 ──────────────────────────────────────────────────────────
+    @kb.add("o", filter=is_process_lv2)
+    def _p2_o(event):
+        handlers.lv2_o()
+
     @kb.add("c", filter=is_process_lv2)
     def _p2_c(event):
         handlers.lv2_c()

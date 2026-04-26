@@ -58,7 +58,7 @@ def _hints(state: AppState) -> str:
         if lv == 1:
             return "o完成  x丟  a釘  s想  n下  j跳Lv2  Tab中斷"
         if lv == 2:
-            return "c切  u虛空  n下  Tab中斷"
+            return "o完成  c切  u虛空  n下  Tab中斷"
     if state.mode == Mode.CUT:
         return "Enter送出切片  x離開"
     if state.mode == Mode.S_TAG:

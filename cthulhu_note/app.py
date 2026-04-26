@@ -321,6 +321,19 @@ class Handlers:
 
     # ── PROCESS Lv2 ──────────────────────────────────────────────────────────
 
+    def lv2_o(self):
+        s = self._state
+        card = s.current_card
+        if card is None:
+            return
+        s.items = [i for i in s.items if i.id != card.id]
+        self._save()
+        s.cards = [c for c in s.cards if c.id != card.id]
+        if s.card_index >= len(s.cards):
+            self._next_level()
+        else:
+            self._invalidate()
+
     def lv2_c(self):
         s = self._state
         card = s.current_card
