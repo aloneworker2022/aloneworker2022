@@ -375,6 +375,8 @@ class Handlers:
         self._save()
         s.input_buffer = ""
         s.message = ""
+        s.mode = Mode.PROCESS
+        s.cut_card = None
         self._invalidate()
 
     def cut_x(self):
