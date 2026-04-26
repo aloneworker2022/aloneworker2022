@@ -1,3 +1,4 @@
+import asyncio
 import random
 
 from cthulhu_note.config import Config
@@ -17,8 +18,27 @@ def maybe_flash(items: list[BujoItem], config: Config, app) -> None:
     _trigger_flash(item, config.lv3_flash_duration, app)
 
 
+def trigger_transition(label: str, app) -> None:
+    state = _get_state(app)
+    if state is None:
+        return
+    if state.mode in (Mode.FLASH, Mode.TRANSITION):
+        return
+    prev_mode = state.mode
+    state.flash_content = label
+    state.mode = Mode.TRANSITION
+    app.invalidate()
+
+    def _end():
+        state.mode = prev_mode
+        state.flash_content = ""
+        app.invalidate()
+
+    loop = asyncio.get_event_loop()
+    loop.call_later(0.35, _end)
+
+
 def _trigger_flash(item: BujoItem, duration: float, app) -> None:
-    from cthulhu_note.app import Handlers  # avoid circular at module level
     state = _get_state(app)
     if state is None:
         return
@@ -27,8 +47,6 @@ def _trigger_flash(item: BujoItem, duration: float, app) -> None:
     state.flash_content = item.content
     state.mode = Mode.FLASH
     app.invalidate()
-
-    import asyncio
 
     def _end():
         state.mode = prev_mode

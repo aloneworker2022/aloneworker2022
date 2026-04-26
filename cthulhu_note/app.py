@@ -64,12 +64,17 @@ class Handlers:
         from cthulhu_note import flash as flash_mod
         if s.process_level == 0:
             flash_mod.maybe_flash(s.items, self._config, self._app)
-            if not self._load_level(1):
-                if not self._load_level(2):
-                    self._go_input()
+            if self._load_level(1):
+                flash_mod.trigger_transition("Lv1", self._app)
+            elif self._load_level(2):
+                flash_mod.trigger_transition("Lv2", self._app)
+            else:
+                self._go_input()
         elif s.process_level == 1:
             flash_mod.maybe_flash(s.items, self._config, self._app)
-            if not self._load_level(2):
+            if self._load_level(2):
+                flash_mod.trigger_transition("Lv2", self._app)
+            else:
                 self._go_input()
         else:
             self._go_input()
@@ -112,14 +117,13 @@ class Handlers:
         s = self._state
         s.message = ""
         s.input_buffer = ""
-        if not self._load_level(0):
-            if not self._load_level(1):
-                if not self._load_level(2):
-                    self._go_input()
-                    return
+        if not (self._load_level(0) or self._load_level(1) or self._load_level(2)):
+            self._go_input()
+            return
         s.mode = Mode.PROCESS
         from cthulhu_note import flash as flash_mod
         flash_mod.maybe_flash(s.items, self._config, self._app)
+        flash_mod.trigger_transition(f"Lv{s.process_level}", self._app)
         self._invalidate()
 
     # ── CTRL+V ───────────────────────────────────────────────────────────────
@@ -214,10 +218,13 @@ class Handlers:
     def lv0_j(self):
         s = self._state
         s.message = ""
-        if not self._load_level(1):
-            if not self._load_level(2):
-                self._go_input()
-                return
+        from cthulhu_note import flash as flash_mod
+        if self._load_level(1):
+            flash_mod.trigger_transition("Lv1", self._app)
+        elif self._load_level(2):
+            flash_mod.trigger_transition("Lv2", self._app)
+        else:
+            self._go_input()
         self._invalidate()
 
     # ── PROCESS Lv1 ──────────────────────────────────────────────────────────
@@ -287,9 +294,11 @@ class Handlers:
     def lv1_j(self):
         s = self._state
         s.message = ""
-        if not self._load_level(2):
+        from cthulhu_note import flash as flash_mod
+        if self._load_level(2):
+            flash_mod.trigger_transition("Lv2", self._app)
+        else:
             self._go_input()
-            return
         self._invalidate()
 
     # ── S_TAG ─────────────────────────────────────────────────────────────────

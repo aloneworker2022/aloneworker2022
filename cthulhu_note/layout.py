@@ -70,6 +70,20 @@ def _hints(state: AppState) -> str:
 
 _LEVEL_COLORS = {0: "cyan", 1: "yellow", 2: "magenta"}
 
+_LEVEL_BG = {0: "bg:ansiwhite fg:ansiblack", 1: "bg:ansired fg:ansiwhite", 2: "bg:ansiblue fg:ansiwhite"}
+
+
+def _footer_style(state: AppState) -> str:
+    if state.mode in (Mode.FLASH, Mode.TRANSITION):
+        return ""
+    if state.mode in (Mode.INPUT, Mode.CTRL_V):
+        return _LEVEL_BG[0]
+    if state.mode == Mode.PROCESS:
+        return _LEVEL_BG.get(state.process_level, "")
+    if state.mode in (Mode.CUT, Mode.S_TAG):
+        return _LEVEL_BG[2]
+    return ""
+
 
 def _card_panel(card) -> ANSI:
     width = shutil.get_terminal_size((80, 24)).columns
@@ -97,6 +111,14 @@ def make_header_text(state: AppState):
 
 
 def make_body_text(state: AppState):
+    if state.mode == Mode.TRANSITION:
+        label = state.flash_content
+        return FormattedText([
+            ("", "\n\n\n"),
+            ("bold ansicyan", f"      ── {label} ──"),
+            ("", "\n"),
+        ])
+
     if state.mode == Mode.FLASH:
         content = state.flash_content
         padding = "\n" * 4
@@ -158,6 +180,7 @@ def build_layout(state: AppState) -> Layout:
     footer = Window(
         content=FormattedTextControl(lambda: make_footer_text(state)),
         height=4,
+        style=lambda: _footer_style(state),
     )
 
     root = HSplit([header, sep_top, body, sep_bot, footer])

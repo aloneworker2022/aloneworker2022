@@ -14,12 +14,12 @@ def build_bindings(state: AppState, handlers) -> KeyBindings:
     is_cut = Condition(lambda: state.mode == Mode.CUT)
     is_s_tag = Condition(lambda: state.mode == Mode.S_TAG)
     is_ctrl_v = Condition(lambda: state.mode == Mode.CTRL_V)
-    is_flash = Condition(lambda: state.mode == Mode.FLASH)
-    not_flash = Condition(lambda: state.mode != Mode.FLASH)
+    is_blocked = Condition(lambda: state.mode in (Mode.FLASH, Mode.TRANSITION))
+    not_blocked = Condition(lambda: state.mode not in (Mode.FLASH, Mode.TRANSITION))
 
-    # ── block everything during flash ────────────────────────────────────────
-    @kb.add("<any>", filter=is_flash)
-    def _flash_block(event):
+    # ── block everything during flash / transition ────────────────────────────
+    @kb.add("<any>", filter=is_blocked)
+    def _blocked(event):
         pass
 
     # ── INPUT mode ───────────────────────────────────────────────────────────
@@ -164,8 +164,8 @@ def build_bindings(state: AppState, handlers) -> KeyBindings:
         handlers.ctrl_v_close()
 
     # ── global quit ──────────────────────────────────────────────────────────
-    @kb.add("c-c", filter=not_flash)
-    @kb.add("c-q", filter=not_flash)
+    @kb.add("c-c", filter=not_blocked)
+    @kb.add("c-q", filter=not_blocked)
     def _quit(event):
         event.app.exit()
 

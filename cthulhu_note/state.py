@@ -11,6 +11,7 @@ class Mode(Enum):
     S_TAG = "s_tag"
     CTRL_V = "ctrl_v"
     FLASH = "flash"
+    TRANSITION = "transition"
 
 
 @dataclass
