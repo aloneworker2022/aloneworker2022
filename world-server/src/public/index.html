@@ -60,6 +60,10 @@
   .cred-id { color: var(--accent); font-weight: bold; min-width: 120px; }
   .cred-token { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
   .cred-badge { background: var(--green); color: white; padding: 1px 6px; border-radius: 3px; font-size: 10px; }
+  /* OpenClaw import */
+  .import-agent-row { border-bottom: 1px solid var(--border); padding: 10px 0; }
+  .import-agent-row:last-child { border-bottom: none; }
+  .import-expand { display:none; margin-top:10px; padding:10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; }
   /* Toast */
   #toast { position: fixed; bottom: 20px; right: 20px; background: var(--green); color: white; padding: 8px 16px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
   #toast.error { background: var(--red); }
@@ -176,6 +180,18 @@
         </div>
 
       </div>
+    </div>
+  </div>
+
+  <!-- 從 OpenClaw 匯入 Agent -->
+  <div class="card full-width">
+    <div class="card-title">
+      從 OpenClaw 匯入 Agent
+      <span style="color:var(--muted);font-size:10px;font-weight:normal">（讀取 ~/.openclaw/openclaw.json）</span>
+      <button onclick="fetchOpenClawAgents()" style="margin-left:auto;padding:2px 8px;font-size:11px;background:var(--border);color:var(--text)">重新整理</button>
+    </div>
+    <div class="card-body" id="openclaw-agents-list">
+      <span style="color:var(--muted);font-size:12px">載入中...</span>
     </div>
   </div>
 
@@ -570,10 +586,142 @@ async function refreshBodyStates() {
   grid.innerHTML = cards.join('');
 }
 
+// --- OpenClaw Agents Import ---
+let openClawWebhookUrl = 'http://127.0.0.1:3799/hooks/agent';
+let openClawWebhookToken = '';
+let openClawAgentsList = [];
+
+async function fetchOpenClawAgents() {
+  const el = document.getElementById('openclaw-agents-list');
+  el.innerHTML = '<span style="color:var(--muted);font-size:12px">載入中...</span>';
+  try {
+    const r = await fetch(`${BASE}/api/admin/openclaw_agents`);
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      el.innerHTML = `<span style="color:var(--yellow);font-size:12px">⚠️ ${d.error || '無法讀取 OpenClaw 設定'}</span><div style="color:var(--muted);font-size:11px;margin-top:4px">確認 ~/.openclaw/openclaw.json 存在，並設有 agents.list</div>`;
+      return;
+    }
+    const data = await r.json();
+    openClawWebhookUrl = data.webhook_url || openClawWebhookUrl;
+    openClawWebhookToken = data.webhook_token || '';
+    openClawAgentsList = data.agents || [];
+
+    if (openClawAgentsList.length === 0) {
+      el.innerHTML = '<span style="color:var(--muted);font-size:12px">~/.openclaw/openclaw.json 中找不到 agents.list</span>';
+      return;
+    }
+
+    el.innerHTML = openClawAgentsList.map((a, i) => `
+      <div class="import-agent-row" id="import-row-${i}">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="min-width:100px;font-weight:bold;color:var(--accent)">${escHtml(a.name)}</div>
+          <div style="color:var(--muted);font-size:12px">${escHtml(a.id)}</div>
+          <div style="color:var(--muted);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${escHtml(a.workspace || '')}</div>
+          ${a.already_registered
+            ? '<span style="background:var(--green);color:white;padding:2px 8px;border-radius:3px;font-size:11px;flex-shrink:0">✓ 已在世界中</span>'
+            : `<button onclick="toggleImportForm(${i})" class="success" style="padding:3px 10px;font-size:12px;flex-shrink:0">加入世界</button>`
+          }
+        </div>
+        <div class="import-expand" id="import-form-${i}">
+          <div class="row"><label>顯示名稱</label><input type="text" id="if-name-${i}" value="${escAttr(a.name)}"></div>
+          <div class="row">
+            <label>類型</label>
+            <select id="if-type-${i}">
+              <option value="agent">agent（AI 角色）</option>
+              <option value="player_avatar">player_avatar（玩家化身）</option>
+              <option value="npc">npc</option>
+            </select>
+          </div>
+          <div class="row"><label>起始房間</label><select id="if-room-${i}"></select></div>
+          <div class="row">
+            <label>Workspace 路徑</label>
+            <input type="text" id="if-workspace-${i}" value="${escAttr(a.workspace || '')}" placeholder="選填，留空請手動複製 agents 資料夾">
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <button onclick="doImportAgent(${i})" class="success">確認加入</button>
+            <button onclick="toggleImportForm(${i})" style="background:var(--border);color:var(--text)">取消</button>
+          </div>
+          <div id="if-result-${i}" style="margin-top:8px;font-size:12px;display:none"></div>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    el.innerHTML = `<span style="color:var(--red);font-size:12px">⚠️ 載入失敗：${escHtml(err.message)}</span>`;
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function toggleImportForm(i) {
+  const form = document.getElementById(`import-form-${i}`);
+  if (!form) return;
+  const showing = form.style.display === 'block';
+  form.style.display = showing ? 'none' : 'block';
+  if (!showing && lastSnapshot) {
+    const sel = document.getElementById(`if-room-${i}`);
+    if (sel && !sel.innerHTML) {
+      sel.innerHTML = lastSnapshot.rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    }
+  }
+}
+
+async function doImportAgent(i) {
+  const agent = openClawAgentsList[i];
+  if (!agent) return;
+  const entity_id = agent.id;
+  const name = document.getElementById(`if-name-${i}`)?.value.trim();
+  const type = document.getElementById(`if-type-${i}`)?.value;
+  const start_room = document.getElementById(`if-room-${i}`)?.value;
+  const workspace_path = document.getElementById(`if-workspace-${i}`)?.value.trim();
+  const resultEl = document.getElementById(`if-result-${i}`);
+
+  if (!name || !start_room) { toast('請填入名稱和起始房間', true); return; }
+
+  // 1. Register entity
+  const r = await fetch(`${BASE}/api/entities/register`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: entity_id, name, type, webhook_url: openClawWebhookUrl, webhook_token: openClawWebhookToken, openclaw_agent_id: entity_id, start_room })
+  });
+  const data = await r.json();
+  if (!r.ok || !data.accepted) { toast(data.reason || '註冊失敗', true); return; }
+
+  // 2. Save cred
+  saveCred(entity_id, data.auth_token);
+
+  // 3. Scaffold
+  const world_server_url = `${location.protocol}//${location.hostname}:3755`;
+  const sr = await fetch(`${BASE}/api/admin/scaffold_agent`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entity_id, name, type, auth_token: data.auth_token, world_server_url, workspace_path: workspace_path || undefined })
+  });
+  const sd = await sr.json();
+
+  // 4. Show result
+  if (resultEl) {
+    resultEl.style.display = 'block';
+    if (sd.workspace_written) {
+      resultEl.innerHTML = `<span style="color:var(--green)">✅ 加入成功！已直接寫入 ${escHtml(workspace_path)}</span>`;
+    } else {
+      const target = workspace_path || `~/.openclaw/workspace-${entity_id}`;
+      resultEl.innerHTML = `<span style="color:var(--green)">✅ 加入成功！</span>請執行：<code style="color:var(--accent)">cp -r ${escHtml(sd.staging_path)}/* ${escHtml(target)}/</code>`;
+    }
+  }
+
+  toast(`${name} 已加入世界！`);
+  fetchSnapshot();
+  setTimeout(fetchOpenClawAgents, 400);
+}
+
 // --- Init ---
 renderCreds();
 fetchSnapshot().then(() => refreshBodyStates());
 fetchLog();
+fetchOpenClawAgents();
 setInterval(fetchSnapshot, 5000);
 setInterval(fetchLog, 8000);
 setInterval(refreshBodyStates, 10000);

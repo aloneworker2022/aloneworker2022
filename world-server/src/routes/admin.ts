@@ -77,6 +77,47 @@ adminRouter.post('/fast_forward', async (req, res) => {
   res.json({ ok: true, from: fromTime, to: toTime, world_minutes_elapsed: world_minutes });
 });
 
+adminRouter.get('/openclaw_agents', (_req, res) => {
+  import('fs').then(fs => {
+    import('path').then(path => {
+      import('os').then(os => {
+        const configPath = path.join(os.homedir(), '.openclaw', 'openclaw.json');
+        if (!fs.existsSync(configPath)) {
+          res.status(404).json({ error: `找不到 ${configPath}` }); return;
+        }
+        try {
+          const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+          const agentsList: { id: string; name: string; workspace: string }[] =
+            config?.agents?.list ?? [];
+
+          // Try to extract webhook token from config
+          const webhookToken: string =
+            config?.hooks?.token ??
+            config?.gateway?.token ??
+            config?.webhook?.token ??
+            '';
+
+          const state = getState();
+          const registered = new Set(Object.keys(state.entities));
+
+          res.json({
+            agents: agentsList.map(a => ({
+              id: a.id,
+              name: a.name,
+              workspace: a.workspace,
+              already_registered: registered.has(a.id),
+            })),
+            webhook_url: 'http://127.0.0.1:3799/hooks/agent',
+            webhook_token: webhookToken,
+          });
+        } catch (err) {
+          res.status(500).json({ error: `讀取失敗：${(err as Error).message}` });
+        }
+      });
+    });
+  });
+});
+
 adminRouter.get('/body_state/:entity_id', (req, res) => {
   const { entity_id } = req.params;
   const state = getState();
