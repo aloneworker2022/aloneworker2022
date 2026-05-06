@@ -9,66 +9,126 @@
     --bg: #0f1117; --surface: #1a1d27; --border: #2a2d3e;
     --text: #e2e8f0; --muted: #6b7280; --accent: #7c3aed;
     --green: #10b981; --yellow: #f59e0b; --red: #ef4444; --blue: #3b82f6;
+    --radius: 8px;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; font-size: 14px; }
-  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 12px; }
-  header h1 { font-size: 16px; }
-  #clock { margin-left: auto; color: var(--accent); font-weight: bold; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; font-size: 14px; overflow-x: hidden; }
+
+  /* ── Header ── */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; }
+  header h1 { font-size: 15px; white-space: nowrap; }
+  #clock { margin-left: auto; color: var(--accent); font-weight: bold; font-size: 13px; text-align: right; }
   #status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
   #status-dot.offline { background: var(--red); }
-  main { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
+
+  /* ── Layout ── */
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px; }
   .full-width { grid-column: 1 / -1; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  .card-title { padding: 8px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+
+  /* ── Card ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .card-title { padding: 8px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .card-body { padding: 12px 14px; }
+
+  /* ── Rooms ── */
   .room { margin-bottom: 12px; }
   .room-name { font-weight: bold; color: var(--accent); margin-bottom: 4px; }
   .room-meta { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
-  .tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin: 2px; }
+  .tag { display: inline-block; padding: 3px 7px; border-radius: 3px; font-size: 11px; margin: 2px; }
   .tag-entity { background: #1e3a5f; color: #60a5fa; }
   .tag-object { background: #1a2e1a; color: #4ade80; }
   .tag-connection { background: #2d1f3d; color: #a78bfa; }
-  .entity-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+
+  /* ── Entity list ── */
+  .entity-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
   .entity-row:last-child { border-bottom: none; }
-  .entity-name { font-weight: bold; min-width: 120px; }
-  .entity-room { color: var(--accent); min-width: 100px; }
-  .entity-action { color: var(--muted); flex: 1; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .online-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .entity-name { font-weight: bold; flex: 1; min-width: 100px; }
+  .entity-room { color: var(--accent); font-size: 13px; }
+  .entity-action { color: var(--muted); width: 100%; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 14px; }
+  .online-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
   .online-dot.offline { background: var(--muted); }
-  .env-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-  .env-item label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 2px; }
-  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .control-group { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
-  .control-group h3 { font-size: 12px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
-  .row label { color: var(--muted); font-size: 12px; min-width: 80px; flex-shrink: 0; }
-  input, select { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 4px 8px; border-radius: 4px; font-family: inherit; font-size: 13px; flex: 1; min-width: 0; }
-  button { background: var(--accent); color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 13px; white-space: nowrap; }
-  button:hover { opacity: 0.85; }
+
+  /* ── Environment ── */
+  .env-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .env-item label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 3px; }
+  .env-item span { font-size: 14px; }
+
+  /* ── Controls ── */
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .control-group { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+  .control-group h3 { font-size: 12px; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ── Form rows ── */
+  .row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+  .row label { color: var(--muted); font-size: 12px; min-width: 82px; flex-shrink: 0; }
+  input, select { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 5px; font-family: inherit; font-size: 14px; flex: 1; min-width: 0; width: 100%; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  button { background: var(--accent); color: white; border: none; padding: 8px 14px; border-radius: 5px; cursor: pointer; font-family: inherit; font-size: 14px; white-space: nowrap; min-height: 38px; touch-action: manipulation; }
+  button:active { opacity: 0.75; }
   button.danger { background: var(--red); }
   button.info { background: var(--blue); }
   button.success { background: var(--green); }
-  #log { height: 200px; overflow-y: auto; font-size: 12px; color: var(--muted); }
-  .log-entry { padding: 3px 0; border-bottom: 1px solid var(--border); }
-  .log-entry .time { color: var(--yellow); margin-right: 6px; }
-  .log-entry .type { color: var(--blue); margin-right: 6px; }
-  .log-entry .actor { color: var(--green); margin-right: 6px; }
-  /* Stored credentials */
-  .cred-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+
+  /* ── Log ── */
+  #log { height: 220px; overflow-y: auto; font-size: 12px; color: var(--muted); -webkit-overflow-scrolling: touch; }
+  .log-entry { padding: 4px 0; border-bottom: 1px solid var(--border); line-height: 1.5; word-break: break-all; }
+  .log-entry .time { color: var(--yellow); margin-right: 5px; }
+  .log-entry .type { color: var(--blue); margin-right: 5px; }
+  .log-entry .actor { color: var(--green); margin-right: 5px; }
+
+  /* ── Credentials ── */
+  .cred-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; flex-wrap: wrap; }
   .cred-row:last-child { border-bottom: none; }
-  .cred-id { color: var(--accent); font-weight: bold; min-width: 120px; }
-  .cred-token { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
-  .cred-badge { background: var(--green); color: white; padding: 1px 6px; border-radius: 3px; font-size: 10px; }
-  /* OpenClaw import */
+  .cred-id { color: var(--accent); font-weight: bold; }
+  .cred-token { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; min-width: 60px; }
+  .cred-badge { background: var(--green); color: white; padding: 2px 7px; border-radius: 3px; font-size: 10px; white-space: nowrap; }
+
+  /* ── OpenClaw import ── */
   .import-agent-row { border-bottom: 1px solid var(--border); padding: 10px 0; }
   .import-agent-row:last-child { border-bottom: none; }
-  .import-expand { display:none; margin-top:10px; padding:10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; }
-  /* Toast */
-  #toast { position: fixed; bottom: 20px; right: 20px; background: var(--green); color: white; padding: 8px 16px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
+  .import-expand { display:none; margin-top:10px; padding:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; }
+
+  /* ── Code blocks ── */
+  .code-block { background:#0a0c12; border:1px solid var(--border); border-radius:4px; padding:10px; font-size:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .code-block code { white-space: pre; }
+
+  /* ── Reg grid ── */
+  .reg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* ── Toast ── */
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--green); color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
   #toast.error { background: var(--red); }
   #toast.show { opacity: 1; }
-  @media (max-width: 700px) { main { grid-template-columns: 1fr; } .controls { grid-template-columns: 1fr; } .full-width { grid-column: 1; } }
+
+  /* ── Tablet (≤ 768px) ── */
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; padding: 10px; gap: 10px; }
+    .full-width { grid-column: 1; }
+    .controls { grid-template-columns: 1fr; }
+    .reg-grid { grid-template-columns: 1fr; gap: 0; }
+    .env-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* ── Mobile (≤ 480px) ── */
+  @media (max-width: 480px) {
+    body { font-size: 13px; }
+    header { padding: 8px 12px; }
+    header h1 { font-size: 13px; }
+    #clock { font-size: 11px; }
+    main { padding: 8px; gap: 8px; }
+    .card-body { padding: 10px 12px; }
+    .card-title { padding: 7px 12px; font-size: 10px; }
+    .env-grid { grid-template-columns: 1fr 1fr; }
+    /* Stack form labels above inputs on small screens */
+    .row { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .row label { min-width: unset; font-size: 11px; }
+    input, select { font-size: 16px; } /* prevent iOS zoom */
+    button { width: 100%; min-height: 44px; font-size: 15px; }
+    button.btn-sm { width: auto; min-height: 32px; font-size: 12px; padding: 5px 10px; }
+    .entity-action { display: none; }
+    #log { height: 180px; }
+    .import-agent-row > div { flex-direction: column; align-items: flex-start !important; }
+  }
 </style>
 </head>
 <body>
@@ -119,7 +179,7 @@
     <div class="card-title">
       生理狀態
       <span style="color:var(--muted);font-size:10px;font-weight:normal">（AI agent 的身體狀態，由 body-state skill 管理）</span>
-      <button onclick="refreshBodyStates()" style="margin-left:auto;padding:2px 8px;font-size:11px;background:var(--border);color:var(--text)">重新整理</button>
+      <button onclick="refreshBodyStates()" class="btn-sm" style="margin-left:auto;background:var(--border);color:var(--text)">重新整理</button>
     </div>
     <div class="card-body" id="body-states-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
       <span style="color:var(--muted);font-size:12px">載入中...</span>
@@ -188,7 +248,7 @@
     <div class="card-title">
       從 OpenClaw 匯入 Agent
       <span style="color:var(--muted);font-size:10px;font-weight:normal">（讀取 ~/.openclaw/openclaw.json）</span>
-      <button onclick="fetchOpenClawAgents()" style="margin-left:auto;padding:2px 8px;font-size:11px;background:var(--border);color:var(--text)">重新整理</button>
+      <button onclick="fetchOpenClawAgents()" class="btn-sm" style="margin-left:auto;background:var(--border);color:var(--text)">重新整理</button>
     </div>
     <div class="card-body" id="openclaw-agents-list">
       <span style="color:var(--muted);font-size:12px">載入中...</span>
@@ -199,7 +259,7 @@
   <div class="card full-width">
     <div class="card-title">註冊 Agent</div>
     <div class="card-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="reg-grid">
         <div>
           <div class="row"><label>Entity ID</label><input type="text" id="reg-id" placeholder="agent_ming"></div>
           <div class="row"><label>顯示名稱</label><input type="text" id="reg-name" placeholder="小明"></div>
@@ -223,8 +283,8 @@
         <label>Workspace 路徑</label>
         <input type="text" id="reg-workspace" placeholder="選填：/home/aw/.openclaw/workspace-ming（填了會直接寫入）">
       </div>
-      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
-        <button onclick="registerAgent()" class="success">註冊並建立 Agent 檔案</button>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button onclick="registerAgent()" class="success" style="flex:1;min-width:180px">註冊並建立 Agent 檔案</button>
         <span style="color:var(--muted);font-size:11px">重複註冊同一 id 會更新設定</span>
       </div>
       <div id="reg-result" style="display:none;margin-top:12px;padding:12px;background:var(--bg);border:1px solid var(--green);border-radius:6px">
@@ -237,11 +297,11 @@
           <div style="font-size:11px;color:var(--yellow);margin-bottom:6px">
             📋 沒有填 workspace 路徑的話，請手動複製以下資料夾到你的 OpenClaw workspace：
           </div>
-          <div style="background:#0a0c12;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:12px;margin-bottom:6px">
+          <div class="code-block" style="margin-bottom:6px">
             <div style="color:var(--muted);margin-bottom:4px">來源（在這台 RPi 上）：</div>
             <code id="reg-staging-path" style="color:var(--accent)"></code>
           </div>
-          <div style="background:#0a0c12;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:12px;margin-bottom:4px">
+          <div class="code-block" style="margin-bottom:4px">
             <div style="color:var(--muted);margin-bottom:4px">複製指令：</div>
             <code id="reg-copy-cmd" style="color:var(--text)"></code>
           </div>
@@ -297,7 +357,7 @@ function renderCreds() {
       <span class="cred-id">${id}</span>
       <span class="cred-badge">有 token</span>
       <span class="cred-token">${creds[id].slice(0,16)}...</span>
-      <button class="danger" style="padding:2px 8px;font-size:11px" onclick="deleteCred('${id}')">刪除</button>
+      <button class="danger btn-sm" onclick="deleteCred('${id}')">刪除</button>
     </div>
   `).join('');
   updateSayCredStatus();
@@ -619,7 +679,7 @@ async function fetchOpenClawAgents() {
           <div style="color:var(--muted);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${escHtml(a.workspace || '')}</div>
           ${a.already_registered
             ? '<span style="background:var(--green);color:white;padding:2px 8px;border-radius:3px;font-size:11px;flex-shrink:0">✓ 已在世界中</span>'
-            : `<button onclick="toggleImportForm(${i})" class="success" style="padding:3px 10px;font-size:12px;flex-shrink:0">加入世界</button>`
+            : `<button onclick="toggleImportForm(${i})" class="success btn-sm" style="flex-shrink:0">加入世界</button>`
           }
         </div>
         <div class="import-expand" id="import-form-${i}">
@@ -637,9 +697,9 @@ async function fetchOpenClawAgents() {
             <label>Workspace 路徑</label>
             <input type="text" id="if-workspace-${i}" value="${escAttr(a.workspace || '')}" placeholder="選填，留空請手動複製 agents 資料夾">
           </div>
-          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-            <button onclick="doImportAgent(${i})" class="success">確認加入</button>
-            <button onclick="toggleImportForm(${i})" style="background:var(--border);color:var(--text)">取消</button>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button onclick="doImportAgent(${i})" class="success btn-sm" style="flex:1;min-width:100px">確認加入</button>
+            <button onclick="toggleImportForm(${i})" class="btn-sm" style="background:var(--border);color:var(--text)">取消</button>
           </div>
           <div id="if-result-${i}" style="margin-top:8px;font-size:12px;display:none"></div>
         </div>
