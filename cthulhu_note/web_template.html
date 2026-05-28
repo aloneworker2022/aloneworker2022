@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>cthulhu-note</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0d0d0d;
+  --surface:#1a1a1a;
+  --card:#242424;
+  --card2:#2c2c2c;
+  --border:rgba(255,255,255,.08);
+  --text:#f0f0f0;
+  --dim:#666;
+  --lv0:#4a9eff;
+  --lv1:#ff4e6a;
+  --lv2:#ffb347;
+  --lv3:#6bcb77;
+  --pin:#ffd700;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:16px}
+body{display:flex;flex-direction:column;height:100dvh}
+
+/* ── header ── */
+.hdr{display:flex;align-items:center;gap:8px;padding:12px 16px 4px;flex-shrink:0}
+.hdr-title{font-size:.85rem;font-weight:600;opacity:.5;letter-spacing:.05em}
+
+/* ── pinned strip ── */
+.pinned-wrap{flex-shrink:0;padding:8px 0 4px}
+.pinned-label{padding:0 16px;font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:6px}
+.pinned-scroll{display:flex;gap:10px;padding:0 16px;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.pinned-scroll::-webkit-scrollbar{display:none}
+.p-card{flex:0 0 130px;height:72px;background:var(--card);border-radius:14px;
+  padding:10px 12px;font-size:.82rem;line-height:1.35;cursor:pointer;
+  position:relative;overflow:hidden;user-select:none;touch-action:pan-x pan-y;
+  border:1px solid var(--border);transition:transform .15s}
+.p-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--pin)}
+.p-card-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.p-card.fly{transform:translateY(-120%);opacity:0;transition:transform .28s ease,opacity .28s ease}
+.p-slot{flex:0 0 72px;height:72px;border:1.5px dashed rgba(255,255,255,.15);
+  border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;color:rgba(255,255,255,.25);cursor:pointer;transition:all .15s}
+.p-slot:active{opacity:.6;transform:scale(.95)}
+
+/* ── level tabs ── */
+.tabs{display:flex;gap:6px;padding:8px 16px 4px;flex-shrink:0}
+.tab{padding:5px 14px;border-radius:20px;border:1px solid var(--border);
+  background:transparent;color:var(--dim);font-size:.78rem;cursor:pointer;
+  transition:all .15s;font-family:inherit}
+.tab.on{background:var(--text);color:var(--bg);border-color:transparent}
+.tab.lv0.on{background:var(--lv0);color:#000}
+.tab.lv1.on{background:var(--lv1)}
+.tab.lv2.on{background:var(--lv2);color:#000}
+
+/* ── card area ── */
+.card-area{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:16px;position:relative;overflow:hidden;min-height:0}
+
+.card-stage{width:100%;max-width:380px;position:relative}
+
+.card{background:var(--card2);border-radius:22px;padding:24px 22px;
+  cursor:grab;touch-action:none;user-select:none;
+  box-shadow:0 12px 40px rgba(0,0,0,.4);border:1px solid var(--border);
+  position:relative;overflow:hidden;will-change:transform;
+  animation:cardIn .22s ease}
+.card:active{cursor:grabbing}
+@keyframes cardIn{from{opacity:0;transform:scale(.93) translateY(10px)}to{opacity:1;transform:none}}
+
+.card-lv-bar{position:absolute;top:0;left:0;right:0;height:3px;border-radius:22px 22px 0 0}
+.lv0 .card-lv-bar,.card.lv0 .card-lv-bar{background:var(--lv0)}
+.lv1 .card-lv-bar,.card.lv1 .card-lv-bar{background:var(--lv1)}
+.lv2 .card-lv-bar,.card.lv2 .card-lv-bar{background:var(--lv2)}
+
+.card-badge{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;
+  opacity:.4;margin-bottom:10px;margin-top:2px}
+.card-body{font-size:1.05rem;line-height:1.55;min-height:60px;
+  display:flex;align-items:center}
+.card-hint{margin-top:14px;font-size:.68rem;color:var(--dim);
+  display:flex;flex-wrap:wrap;gap:10px}
+.hint-chip{padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.05)}
+
+/* swipe indicator overlay */
+.swind{position:absolute;inset:0;border-radius:22px;display:flex;
+  align-items:center;justify-content:center;font-size:2.5rem;
+  opacity:0;pointer-events:none;transition:none}
+
+.card-counter{text-align:center;font-size:.72rem;color:var(--dim);margin-top:10px}
+.empty{text-align:center;color:var(--dim);font-size:.9rem;padding:24px 0}
+
+/* ── input bar ── */
+.input-bar{flex-shrink:0;padding:10px 14px;
+  padding-bottom:max(10px,env(safe-area-inset-bottom));background:var(--bg)}
+.input-inner{display:flex;align-items:center;gap:8px;background:var(--surface);
+  border-radius:26px;padding:10px 14px;border:1px solid var(--border)}
+.input-inner input{flex:1;background:none;border:none;color:var(--text);
+  font-size:.95rem;outline:none;font-family:inherit;min-width:0}
+.input-inner input::placeholder{color:var(--dim)}
+.send-btn{background:var(--lv1);border:none;border-radius:50%;
+  width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;color:#fff;font-size:1rem;
+  transition:opacity .15s}
+.send-btn:active{opacity:.7}
+
+/* ── modal ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);
+  backdrop-filter:blur(6px);z-index:50;display:flex;
+  align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border-radius:24px 24px 0 0;
+  padding:24px 20px;width:100%;max-width:480px;
+  border:1px solid var(--border);border-bottom:none;
+  transform:translateY(100%);transition:transform .25s ease}
+.overlay.open .modal{transform:translateY(0)}
+.modal h3{font-size:1rem;margin-bottom:4px}
+.modal-ctx{font-size:.78rem;color:var(--dim);margin-bottom:16px}
+.modal input{width:100%;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:12px 14px;color:var(--text);font-size:.95rem;
+  outline:none;margin-bottom:14px;font-family:inherit}
+.modal input:focus{border-color:rgba(255,255,255,.2)}
+.modal-btns{display:flex;gap:8px}
+.btn{flex:1;padding:13px;border-radius:13px;border:none;
+  font-size:.9rem;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.btn:active{opacity:.7}
+.btn-ok{background:var(--lv1);color:#fff}
+.btn-cancel{background:var(--card);color:var(--dim);border:1px solid var(--border)}
+
+/* ── toast ── */
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(255,255,255,.12);backdrop-filter:blur(10px);
+  padding:9px 18px;border-radius:20px;font-size:.82rem;z-index:60;
+  opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <span>🦑</span>
+  <span class="hdr-title">CTHULHU-NOTE</span>
+</div>
+
+<div class="pinned-wrap">
+  <div class="pinned-label">代辦三格</div>
+  <div class="pinned-scroll" id="pscroll"></div>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab lv0 on" data-lv="0" onclick="switchLv(0)">Lv0</button>
+  <button class="tab lv1"    data-lv="1" onclick="switchLv(1)">Lv1</button>
+  <button class="tab lv2"    data-lv="2" onclick="switchLv(2)">Lv2</button>
+</div>
+
+<div class="card-area">
+  <div class="card-stage">
+    <div id="cstage"></div>
+    <div class="card-counter" id="counter"></div>
+  </div>
+</div>
+
+<div class="input-bar">
+  <div class="input-inner">
+    <input id="inp" type="text" placeholder="新增到 Lv0 收件匣…" autocomplete="off" autocorrect="off">
+    <button class="send-btn" onclick="sendInput()">↵</button>
+  </div>
+</div>
+
+<!-- modal -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <h3 id="mtitle"></h3>
+    <div class="modal-ctx" id="mctx"></div>
+    <input id="minp" type="text" placeholder="">
+    <div class="modal-btns">
+      <button class="btn btn-cancel" onclick="modalDone(null)">取消</button>
+      <button class="btn btn-ok" id="mok" onclick="modalDone(document.getElementById('minp').value)">確定</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ────────────────────────────────────────────────────────── state
+let items = [];
+let curLv = 0;
+let idx = {0:0, 1:0, 2:0};
+
+// ────────────────────────────────────────────────────────── api
+async function req(method, path, body) {
+  const r = await fetch(path, {
+    method,
+    headers: body ? {'Content-Type':'application/json'} : {},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!r.ok) { const t = await r.text(); throw new Error(t); }
+  return r.status === 204 ? null : r.json();
+}
+const GET    = p       => req('GET',    p);
+const POST   = (p,b)   => req('POST',   p, b);
+const DEL    = p       => req('DELETE', p);
+const PATCH  = (p,b)   => req('PATCH',  p, b);
+
+async function reload() {
+  items = await GET('/api/items');
+  render();
+}
+
+// ────────────────────────────────────────────────────────── helpers
+const lvItems  = lv  => items.filter(i => i.level === lv);
+const pinned   = ()  => items.filter(i => i.level === 1 && i.pinned);
+const curItem  = ()  => { const a=lvItems(curLv); return a[Math.min(idx[curLv],a.length-1)]??null; };
+const delay    = ms  => new Promise(r => setTimeout(r, ms));
+
+function clampIdx() {
+  for (let lv=0;lv<3;lv++) { const n=lvItems(lv).length; if(n===0)idx[lv]=0; else idx[lv]=Math.min(idx[lv],n-1); }
+}
+
+// ────────────────────────────────────────────────────────── toast
+let _toastT;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ────────────────────────────────────────────────────────── modal
+let _modalRes = null;
+function openModal(title, ctx='', placeholder='') {
+  document.getElementById('mtitle').textContent   = title;
+  document.getElementById('mctx').textContent     = ctx;
+  const inp = document.getElementById('minp');
+  inp.placeholder = placeholder;
+  inp.value = '';
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(() => inp.focus(), 220);
+  return new Promise(res => {
+    _modalRes = res;
+    inp.onkeydown = e => { if (e.key === 'Enter') modalDone(inp.value); };
+  });
+}
+function modalDone(val) {
+  document.getElementById('overlay').classList.remove('open');
+  if (_modalRes) { _modalRes(val === null ? null : (val||'').trim()); _modalRes = null; }
+}
+function overlayClick(e) { if (e.target === e.currentTarget) modalDone(null); }
+
+// ────────────────────────────────────────────────────────── actions
+async function doComplete(item) {
+  await DEL(`/api/items/${item.id}`);
+  clampIdx();
+  await reload();
+  toast('✓ 完成');
+}
+async function doDelete(item) {
+  await DEL(`/api/items/${item.id}`);
+  clampIdx();
+  await reload();
+  toast('✗ 已刪除');
+}
+async function doPromote(item) {           // Lv0 → Lv1
+  if (lvItems(1).length >= 10) { toast('Lv1 已滿 10 格'); return; }
+  await PATCH(`/api/items/${item.id}`, {level:1});
+  clampIdx();
+  await reload();
+  toast('→ 升到 Lv1');
+}
+async function doPin(item) {              // Lv1 → 代辦三格
+  if (pinned().length >= 3) { toast('代辦三格已滿'); return; }
+  await PATCH(`/api/items/${item.id}`, {pinned:true});
+  await reload();
+  toast('📌 已釘選');
+}
+async function doToLv2(item) {            // Lv1 → Lv2 (雙擊)
+  const tag = await openModal('移動到 Lv2', '項目：'+item.content, '分類 tag（可留空）');
+  if (tag === null) return;
+  const parent_tag = tag || item.content;
+  const content    = tag ? `[${parent_tag}]${item.content}` : item.content;
+  await PATCH(`/api/items/${item.id}`, {level:2, parent_tag, content});
+  await reload();
+  toast('→ 移到 Lv2');
+}
+async function doToLv3(item) {            // Lv2 → Lv3
+  await PATCH(`/api/items/${item.id}`, {level:3});
+  clampIdx();
+  await reload();
+  toast('→ 移到 Lv3');
+}
+async function doCut(item) {              // Lv2 雙擊切項目
+  const content = await openModal('切項目', '從：'+item.content, '新項目內容…');
+  if (!content) return;
+  await POST('/api/items', {content, level:0});
+  await reload();
+  toast('✂ 已切出到 Lv0');
+}
+async function doAddPinned() {
+  const content = await openModal('加入代辦三格', '', '輸入項目…');
+  if (!content) return;
+  if (lvItems(1).length >= 10) { toast('Lv1 已滿 10 格'); return; }
+  await POST('/api/items', {content, level:1, pinned:true});
+  await reload();
+  toast('📌 已加入代辦三格');
+}
+
+// ────────────────────────────────────────────────────────── navigation
+function navigate(dir) {
+  const a = lvItems(curLv);
+  const next = idx[curLv] + dir;
+  if (next < 0 || next >= a.length) return false;
+  idx[curLv] = next;
+  renderCard();
+  return true;
+}
+
+// ────────────────────────────────────────────────────────── render
+function render() {
+  clampIdx();
+  renderPinned();
+  renderTabs();
+  renderCard();
+}
+
+function renderPinned() {
+  const ps = pinned();
+  let html = '';
+  ps.forEach(item => {
+    html += `<div class="p-card" data-id="${item.id}"><div class="p-card-text">${esc(item.content)}</div></div>`;
+  });
+  for (let i=ps.length;i<3;i++) {
+    html += `<div class="p-slot" onclick="doAddPinned()">+</div>`;
+  }
+  const scroll = document.getElementById('pscroll');
+  scroll.innerHTML = html;
+
+  // attach swipe-up on each pinned card
+  scroll.querySelectorAll('.p-card').forEach(el => {
+    const item = ps.find(i => i.id === parseInt(el.dataset.id));
+    swipeable(el, {
+      up:   () => flyEl(el, () => doComplete(item)),
+      left: null, right: null, down: null, dbl: null,
+      noLR: true
+    });
+  });
+}
+
+function renderTabs() {
+  document.querySelectorAll('.tab').forEach(t => {
+    const lv = parseInt(t.dataset.lv);
+    const n  = lvItems(lv).length;
+    t.textContent = `Lv${lv}${n ? ' '+n : ''}`;
+    t.classList.toggle('on', lv === curLv);
+  });
+}
+
+function renderCard() {
+  const stage = document.getElementById('cstage');
+  const ctr   = document.getElementById('counter');
+  const list  = lvItems(curLv);
+
+  if (!list.length) {
+    stage.innerHTML = `<div class="empty">Lv${curLv} 目前沒有項目</div>`;
+    ctr.textContent = '';
+    return;
+  }
+
+  const i    = idx[curLv];
+  const item = list[i];
+  const hints = {
+    0: ['↑ 升 Lv1','↓ 刪除'],
+    1: ['↑ 釘選','↓ 刪除','← → 切換','×2 → Lv2'],
+    2: ['↑ 完成','↓ → Lv3','← → 切換','×2 切項目'],
+  }[curLv];
+
+  stage.innerHTML = `
+    <div class="card lv${curLv}" id="ccard">
+      <div class="card-lv-bar"></div>
+      <div class="card-badge">Lv${item.level}${item.parent_tag?' · '+esc(item.parent_tag):''}</div>
+      <div class="card-body">${esc(item.content)}</div>
+      <div class="card-hint">${hints.map(h=>`<span class="hint-chip">${h}</span>`).join('')}</div>
+      <div class="swind" id="swind"></div>
+    </div>`;
+
+  ctr.textContent = `${i+1} / ${list.length}`;
+
+  const card = document.getElementById('ccard');
+  const handlers = {
+    0: { up: () => flyCard('up',  () => doPromote(item)),
+         down: () => flyCard('down',() => doDelete(item)),
+         left: null, right: null, dbl: null, noLR: true },
+    1: { up:    () => flyCard('up',   () => doPin(item)),
+         down:  () => flyCard('down', () => doDelete(item)),
+         left:  () => navigate(1),
+         right: () => navigate(-1),
+         dbl:   () => doToLv2(item), noLR: false },
+    2: { up:    () => flyCard('up',   () => doComplete(item)),
+         down:  () => flyCard('down', () => doToLv3(item)),
+         left:  () => navigate(1),
+         right: () => navigate(-1),
+         dbl:   () => doCut(item), noLR: false },
+  }[curLv];
+
+  swipeable(card, handlers);
+}
+
+function switchLv(lv) {
+  curLv = lv;
+  renderTabs();
+  renderCard();
+}
+
+// ────────────────────────────────────────────────────────── card fly animation
+function flyCard(dir, action) {
+  const card = document.getElementById('ccard');
+  if (!card) return action();
+  const map = {up:'translateY(-130%)',down:'translateY(130%)',left:'translateX(-130%)',right:'translateX(130%)'};
+  card.style.transition = 'transform .26s ease, opacity .26s ease';
+  card.style.transform  = map[dir];
+  card.style.opacity    = '0';
+  setTimeout(() => action(), 260);
+}
+function flyEl(el, action) {
+  el.style.transition = 'transform .24s ease, opacity .24s ease';
+  el.style.transform  = 'translateY(-130%)';
+  el.style.opacity    = '0';
+  setTimeout(() => action(), 240);
+}
+
+// ────────────────────────────────────────────────────────── swipe engine
+function swipeable(el, {up, down, left, right, dbl, noLR}) {
+  const THRESH  = 55;
+  const DBL_MS  = 320;
+  let sx, sy, lastTap = 0, active = false;
+
+  function start(cx, cy) {
+    sx = cx; sy = cy; active = true;
+    el.style.transition = 'none';
+  }
+  function move(cx, cy) {
+    if (!active) return;
+    const dx = cx-sx, dy = cy-sy;
+    const horiz = Math.abs(dx) > Math.abs(dy);
+    let tx = 0, ty = 0;
+    if (horiz && !noLR) {
+      tx = Math.sign(dx) * Math.min(Math.abs(dx), THRESH*1.6);
+    } else if (!horiz) {
+      ty = Math.sign(dy) * Math.min(Math.abs(dy), THRESH*1.6);
+    }
+    const rot = tx * 0.03;
+    el.style.transform = `translate(${tx}px,${ty}px) rotate(${rot}deg)`;
+
+    // overlay hint
+    const ov = el.querySelector('.swind') || el.querySelector('#swind');
+    if (ov) {
+      const abs = Math.max(Math.abs(tx), Math.abs(ty));
+      if (abs > 16) {
+        ov.style.opacity = Math.min(abs/THRESH, .8);
+        if (!horiz) {
+          ov.textContent   = dy < 0 ? '↑' : '↓';
+          ov.style.background = dy<0 ? 'rgba(107,203,119,.25)' : 'rgba(255,78,106,.25)';
+        } else {
+          ov.textContent   = dx > 0 ? '←' : '→';
+          ov.style.background = 'rgba(255,255,255,.08)';
+        }
+      } else { ov.style.opacity = 0; }
+    }
+  }
+  function end(cx, cy) {
+    if (!active) return; active = false;
+    const dx = cx-sx, dy = cy-sy;
+    const horiz = Math.abs(dx) > Math.abs(dy);
+    // reset
+    el.style.transition = 'transform .18s ease, opacity .18s ease';
+    el.style.transform  = '';
+    const ov = el.querySelector('.swind') || el.querySelector('#swind');
+    if (ov) ov.style.opacity = 0;
+
+    if (horiz && !noLR) {
+      if (dx < -THRESH && left)  { left();  return; }
+      if (dx >  THRESH && right) { right(); return; }
+    } else if (!horiz) {
+      if (dy < -THRESH && up)    { up();    return; }
+      if (dy >  THRESH && down)  { down();  return; }
+    }
+    // tap / double-tap
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && dbl) {
+      const now = Date.now();
+      if (now - lastTap < DBL_MS) { dbl(); lastTap = 0; }
+      else lastTap = now;
+    }
+  }
+
+  // touch
+  el.addEventListener('touchstart', e => {
+    const t = e.touches[0]; start(t.clientX, t.clientY);
+  }, {passive:true});
+  el.addEventListener('touchmove', e => {
+    const t = e.touches[0]; move(t.clientX, t.clientY);
+    if (e.cancelable) e.preventDefault();
+  }, {passive:false});
+  el.addEventListener('touchend', e => {
+    const t = e.changedTouches[0]; end(t.clientX, t.clientY);
+  }, {passive:true});
+
+  // mouse (desktop testing)
+  el.addEventListener('mousedown', e => start(e.clientX, e.clientY));
+  window.addEventListener('mousemove', e => { if (e.buttons===1) move(e.clientX, e.clientY); });
+  window.addEventListener('mouseup',   e => { if (active) end(e.clientX, e.clientY); });
+}
+
+// ────────────────────────────────────────────────────────── input
+async function sendInput() {
+  const inp = document.getElementById('inp');
+  const val = inp.value.trim();
+  if (!val) return;
+  inp.value = '';
+  await POST('/api/items', {content:val, level:0});
+  await reload();
+  toast('+ 已加入 Lv0');
+}
+document.getElementById('inp').addEventListener('keydown', e => { if(e.key==='Enter') sendInput(); });
+
+// ────────────────────────────────────────────────────────── util
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ────────────────────────────────────────────────────────── boot
+reload();
+</script>
+</body>
+</html>

@@ -11,11 +11,17 @@ dependencies = [
     "httpx",
     "click",
     "rich>=13.0",
+    "fastapi",
+    "uvicorn[standard]",
 ]
 
 [project.scripts]
 cthulhu-note = "cthulhu_note.cli:main"
+cthulhu-note-web = "cthulhu_note.web:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["cthulhu_note*"]
+
+[tool.setuptools.package-data]
+cthulhu_note = ["web_template.html"]
