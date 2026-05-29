@@ -336,12 +336,17 @@ async function doPromote(item) {
 }
 async function doPin(item) {
   if (pinned().length >= 3) { toast('代辦三格已滿'); return; }
+  const isThirdPin = (pinned().length === 2); // 這次釘上去就滿了
   await PATCH(`/api/items/${item.id}`, {pinned:true});
-  clampLvIdx();
+  if (isThirdPin) {
+    // reload 前先切場景，讓 render() 直接畫代辦三格，不會再畫 Lv 卡
+    curScene = 'pin';
+    document.body.classList.remove('on-lv');
+  } else {
+    clampLvIdx();
+  }
   await reload();
   toast('📌 已釘選');
-  // Bug2 fix: 代辦三格滿了就自動跳回代辦三格場景
-  if (pinned().length >= 3) goHome();
 }
 async function doToLv2(item) {
   const tag = await openModal('移動到 Lv2','項目：'+item.content,'分類 tag（可留空）');
