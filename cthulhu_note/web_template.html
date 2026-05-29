@@ -12,7 +12,6 @@
   --bg:#0d0d0d;
   --surface:#1a1a1a;
   --card:#242424;
-  --card2:#2a2a2a;
   --border:rgba(255,255,255,.08);
   --text:#f0f0f0;
   --dim:#555;
@@ -26,82 +25,109 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 body{display:flex;flex-direction:column;height:100dvh}
 
-/* ── header ── */
-.hdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
-  padding:10px 16px 6px}
-.hdr-left{display:flex;align-items:center;gap:6px}
-.hdr-title{font-size:.78rem;font-weight:700;letter-spacing:.08em;opacity:.45}
-.lv-badge{font-size:.72rem;padding:3px 10px;border-radius:10px;font-weight:600;
-  background:var(--lv0);color:#000;transition:background .3s}
+/* ── scenes wrapper ── */
+.scenes{flex:1;position:relative;overflow:hidden;min-height:0}
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;
+  transition:transform .32s cubic-bezier(.4,0,.2,1)}
+
+/* scene-pin is home, scene-lv slides in from right */
+#scene-pin{transform:translateX(0)}
+#scene-lv {transform:translateX(100%)}
+body.on-lv #scene-pin{transform:translateX(-40%)}
+body.on-lv #scene-lv {transform:translateX(0)}
+
+/* ── scene: 代辦三格 ── */
+.pin-hdr{flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  padding:18px 16px 8px;gap:6px}
+.pin-hdr-title{font-size:.72rem;font-weight:700;letter-spacing:.1em;opacity:.4}
+.pin-hdr-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.2)}
+
+.pin-carousel{flex:1;overflow:hidden;position:relative;min-height:0}
+.pin-track{display:flex;height:100%;transition:transform .3s cubic-bezier(.4,0,.2,1);
+  will-change:transform}
+.pin-slide{flex:0 0 100%;display:flex;align-items:center;justify-content:center;
+  padding:16px 28px}
+
+/* filled pinned card */
+.pin-card{width:100%;max-width:340px;border-radius:28px;background:var(--card);
+  border:1px solid var(--border);padding:32px 26px 24px;
+  position:relative;overflow:hidden;min-height:220px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);user-select:none}
+.pin-card::before{content:'';position:absolute;top:0;left:0;right:0;
+  height:4px;background:var(--pin);border-radius:28px 28px 0 0}
+.pin-card-label{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--pin);opacity:.7;margin-bottom:12px}
+.pin-card-body{font-size:1.2rem;line-height:1.6;flex:1;
+  display:flex;align-items:center;word-break:break-all}
+.pin-card-hint{font-size:.68rem;color:var(--dim);margin-top:16px;
+  display:flex;gap:10px}
+.pin-card .swind{position:absolute;inset:0;border-radius:28px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:3.5rem;opacity:0;pointer-events:none}
+
+/* empty [+] slot card */
+.pin-slot{width:100%;max-width:340px;border-radius:28px;
+  border:2px dashed rgba(255,255,255,.12);padding:32px 26px 24px;
+  min-height:220px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;cursor:pointer;
+  transition:all .15s;background:rgba(255,255,255,.015)}
+.pin-slot:active{opacity:.6;transform:scale(.97)}
+.pin-slot-icon{font-size:2.8rem;color:rgba(255,255,255,.18)}
+.pin-slot-txt{font-size:.8rem;color:var(--dim)}
+
+/* dots */
+.pin-dots{flex-shrink:0;display:flex;justify-content:center;gap:7px;padding:12px 0 6px}
+.dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.15);transition:all .2s}
+.dot.on{background:var(--pin);width:18px;border-radius:4px}
+
+/* ── scene: Lv 處理 ── */
+.lv-hdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px 8px}
+.back-btn{display:flex;align-items:center;gap:5px;background:none;border:none;
+  color:var(--dim);font-size:.82rem;cursor:pointer;font-family:inherit;
+  padding:6px 0;transition:color .15s}
+.back-btn:active{color:var(--text)}
+.back-icon{font-size:.9rem}
+.lv-badge{font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:10px}
+.lv-badge.lv0{background:var(--lv0);color:#000}
 .lv-badge.lv1{background:var(--lv1);color:#fff}
 .lv-badge.lv2{background:var(--lv2);color:#000}
 .lv-badge.empty{background:var(--surface);color:var(--dim);border:1px solid var(--border)}
 
-/* ── 代辦三格 ── */
-.pinned-wrap{flex-shrink:0;padding:4px 12px 8px}
-.pinned-label{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;
-  color:var(--dim);margin-bottom:6px;padding:0 2px}
-.pinned-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lv-area{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:12px 28px 8px;min-height:0;overflow:hidden}
 
-.p-card{background:var(--card);border-radius:14px;padding:10px;
-  min-height:88px;cursor:pointer;position:relative;overflow:hidden;
-  user-select:none;touch-action:none;border:1px solid var(--border);
+.lv-card{width:100%;max-width:340px;border-radius:28px;background:var(--card);
+  border:1px solid var(--border);padding:28px 24px 22px;
+  position:relative;overflow:hidden;min-height:200px;
   display:flex;flex-direction:column;justify-content:space-between;
-  will-change:transform}
-.p-card::before{content:'';position:absolute;top:0;left:0;right:0;
-  height:2px;background:var(--pin);border-radius:14px 14px 0 0}
-.p-card-txt{font-size:.78rem;line-height:1.4;
-  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.p-card-hint{font-size:.6rem;color:var(--dim);margin-top:4px}
-.p-card .swind{position:absolute;inset:0;border-radius:14px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.6rem;opacity:0;pointer-events:none}
-
-.p-slot{border:1.5px dashed rgba(255,255,255,.13);border-radius:14px;
-  min-height:88px;display:flex;align-items:center;justify-content:center;
-  font-size:1.6rem;color:rgba(255,255,255,.2);cursor:pointer;
-  transition:all .15s;background:transparent}
-.p-slot:active{opacity:.5;transform:scale(.96)}
-
-/* ── divider ── */
-.divider{flex-shrink:0;height:1px;background:var(--border);margin:0 12px}
-
-/* ── main card area ── */
-.card-area{flex:1;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;padding:16px 16px 8px;min-height:0;overflow:hidden}
-
-.card-stage{width:100%;max-width:400px;position:relative}
-
-.card{background:var(--card2);border-radius:22px;padding:26px 22px 20px;
-  cursor:grab;touch-action:none;user-select:none;
-  box-shadow:0 14px 48px rgba(0,0,0,.5);border:1px solid var(--border);
-  position:relative;overflow:hidden;will-change:transform;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+  cursor:grab;user-select:none;touch-action:none;will-change:transform;
   animation:cIn .22s cubic-bezier(.25,.8,.25,1)}
-.card:active{cursor:grabbing}
-@keyframes cIn{from{opacity:0;transform:scale(.94) translateY(12px)}to{opacity:1;transform:none}}
-
-.card-stripe{position:absolute;top:0;left:0;right:0;height:3px;border-radius:22px 22px 0 0}
-.card.lv0 .card-stripe{background:var(--lv0)}
-.card.lv1 .card-stripe{background:var(--lv1)}
-.card.lv2 .card-stripe{background:var(--lv2)}
-
-.card-tag{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;
+.lv-card:active{cursor:grabbing}
+@keyframes cIn{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:none}}
+.lv-card::before{content:'';position:absolute;top:0;left:0;right:0;
+  height:4px;border-radius:28px 28px 0 0}
+.lv-card.lv0::before{background:var(--lv0)}
+.lv-card.lv1::before{background:var(--lv1)}
+.lv-card.lv2::before{background:var(--lv2)}
+.lv-card-tag{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;
   opacity:.35;margin-bottom:10px}
-.card-body{font-size:1.08rem;line-height:1.6;min-height:64px;
+.lv-card-body{font-size:1.15rem;line-height:1.6;flex:1;
   display:flex;align-items:center;word-break:break-all}
-.card-hints{margin-top:16px;display:flex;flex-wrap:wrap;gap:6px}
-.hint{font-size:.66rem;color:var(--dim);padding:3px 8px;
+.lv-card-hints{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px}
+.hint{font-size:.64rem;color:var(--dim);padding:3px 8px;
   border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border)}
-
-.card .swind{position:absolute;inset:0;border-radius:22px;
+.lv-card .swind{position:absolute;inset:0;border-radius:28px;
   display:flex;align-items:center;justify-content:center;
-  font-size:3rem;opacity:0;pointer-events:none}
+  font-size:3.5rem;opacity:0;pointer-events:none}
 
-.card-nav{text-align:center;font-size:.72rem;color:var(--dim);margin-top:10px}
+.lv-nav{font-size:.72rem;color:var(--dim);text-align:center;margin-top:10px}
 
-.empty-state{text-align:center;color:var(--dim);padding:32px 0}
-.empty-state .e-icon{font-size:2.5rem;display:block;margin-bottom:8px}
-.empty-state .e-txt{font-size:.88rem}
+.empty-state{text-align:center;padding:16px}
+.e-icon{font-size:2.8rem;display:block;margin-bottom:8px}
+.e-txt{font-size:.88rem;color:var(--dim)}
 
 /* ── input bar ── */
 .input-bar{flex-shrink:0;padding:8px 14px;
@@ -117,12 +143,13 @@ body{display:flex;flex-direction:column;height:100dvh}
 .send-btn:active{opacity:.6}
 
 /* ── modal ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);
   z-index:50;display:flex;align-items:flex-end;justify-content:center;
   opacity:0;pointer-events:none;transition:opacity .2s}
 .overlay.open{opacity:1;pointer-events:all}
-.modal{background:var(--surface);border-radius:24px 24px 0 0;padding:24px 20px 28px;
-  width:100%;max-width:480px;border:1px solid var(--border);border-bottom:none;
+.modal{background:var(--surface);border-radius:24px 24px 0 0;
+  padding:24px 20px 28px;width:100%;max-width:480px;
+  border:1px solid var(--border);border-bottom:none;
   transform:translateY(100%);transition:transform .25s ease}
 .overlay.open .modal{transform:translateY(0)}
 .modal h3{font-size:1rem;margin-bottom:4px}
@@ -130,7 +157,7 @@ body{display:flex;flex-direction:column;height:100dvh}
 .modal input{width:100%;background:var(--card);border:1px solid var(--border);
   border-radius:12px;padding:12px 14px;color:var(--text);font-size:.95rem;
   outline:none;margin-bottom:14px;font-family:inherit}
-.modal input:focus{border-color:rgba(255,255,255,.2)}
+.modal input:focus{border-color:rgba(255,255,255,.22)}
 .modal-btns{display:flex;gap:8px}
 .btn{flex:1;padding:13px;border-radius:13px;border:none;font-size:.9rem;
   cursor:pointer;font-family:inherit;transition:opacity .1s}
@@ -139,42 +166,51 @@ body{display:flex;flex-direction:column;height:100dvh}
 .btn-cancel{background:var(--card);color:var(--dim);border:1px solid var(--border)}
 
 /* ── toast ── */
-.toast{position:fixed;bottom:88px;left:50%;
-  transform:translateX(-50%) translateY(16px);
-  background:rgba(40,40,40,.95);border:1px solid var(--border);
-  backdrop-filter:blur(12px);padding:9px 18px;border-radius:20px;
-  font-size:.82rem;z-index:60;opacity:0;
-  transition:opacity .18s,transform .18s;pointer-events:none;white-space:nowrap}
+.toast{position:fixed;bottom:84px;left:50%;
+  transform:translateX(-50%) translateY(14px);
+  background:rgba(35,35,35,.96);border:1px solid var(--border);
+  padding:9px 18px;border-radius:20px;font-size:.82rem;
+  z-index:60;opacity:0;transition:opacity .18s,transform .18s;
+  pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
 
-<div class="hdr">
-  <div class="hdr-left">
-    <span>🦑</span>
-    <span class="hdr-title">CTHULHU-NOTE</span>
+<div class="scenes">
+
+  <!-- ── 場景一：代辦三格 ── -->
+  <div class="scene" id="scene-pin">
+    <div class="pin-hdr">
+      <span class="pin-hdr-dot"></span>
+      <span class="pin-hdr-title">代辦三格</span>
+      <span class="pin-hdr-dot"></span>
+    </div>
+    <div class="pin-carousel" id="pin-carousel">
+      <div class="pin-track" id="pin-track"></div>
+    </div>
+    <div class="pin-dots" id="pin-dots"></div>
   </div>
-  <span class="lv-badge" id="lvbadge">Lv0</span>
-</div>
 
-<!-- 代辦三格 -->
-<div class="pinned-wrap">
-  <div class="pinned-label">代辦三格</div>
-  <div class="pinned-grid" id="pgrid"></div>
-</div>
-
-<div class="divider"></div>
-
-<!-- 主卡片 -->
-<div class="card-area">
-  <div class="card-stage">
-    <div id="cstage"></div>
-    <div class="card-nav" id="cnav"></div>
+  <!-- ── 場景二：Lv 處理 ── -->
+  <div class="scene" id="scene-lv">
+    <div class="lv-hdr">
+      <button class="back-btn" onclick="goHome()">
+        <span class="back-icon">‹</span> 代辦三格
+      </button>
+      <span class="lv-badge" id="lvbadge">Lv0</span>
+    </div>
+    <div class="lv-area">
+      <div style="width:100%;max-width:340px">
+        <div id="cstage"></div>
+        <div class="lv-nav" id="cnav"></div>
+      </div>
+    </div>
   </div>
-</div>
 
-<!-- 輸入 -->
+</div><!-- /scenes -->
+
+<!-- 輸入（永遠在底部） -->
 <div class="input-bar">
   <div class="input-inner">
     <input id="inp" type="text" placeholder="新增到 Lv0 收件匣…" autocomplete="off" autocorrect="off">
@@ -198,12 +234,13 @@ body{display:flex;flex-direction:column;height:100dvh}
 <div class="toast" id="toast"></div>
 
 <script>
-// ── state ────────────────────────────────────────────────────────────────────
-let items   = [];
-let curLv   = 0;
-let cardIdx = {0:0, 1:0, 2:0};
+// ── state ─────────────────────────────────────────────────────────────────
+let items    = [];
+let pinIdx   = 0;   // 代辦三格 carousel index (0~2)
+let lvCardIdx= {0:0,1:0,2:0};
+let curScene = 'pin'; // 'pin' | 'lv'
 
-// ── api ──────────────────────────────────────────────────────────────────────
+// ── api ───────────────────────────────────────────────────────────────────
 async function req(method, path, body) {
   const r = await fetch(path, {
     method,
@@ -218,45 +255,49 @@ const POST  = (p,b) => req('POST',   p, b);
 const DEL   = p     => req('DELETE', p);
 const PATCH = (p,b) => req('PATCH',  p, b);
 
-async function reload() {
-  items = await GET('/api/items');
-  curLv = activeLv();
-  render();
-}
+async function reload() { items = await GET('/api/items'); render(); }
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── helpers ───────────────────────────────────────────────────────────────
 const lvItems = lv => items.filter(i => i.level === lv);
 const pinned  = ()  => items.filter(i => i.level === 1 && i.pinned);
+const esc     = s   => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-// Lv0 清完才進 Lv1，Lv1 清完才進 Lv2
+// Lv0 先處理，清完才 Lv1，以此類推
 function activeLv() {
-  if (lvItems(0).length > 0) return 0;
-  if (lvItems(1).length > 0) return 1;
-  if (lvItems(2).length > 0) return 2;
+  if (lvItems(0).length) return 0;
+  if (lvItems(1).length) return 1;
+  if (lvItems(2).length) return 2;
   return 0;
 }
 
-function clampIdx() {
+function clampLvIdx() {
   for (let lv=0;lv<3;lv++) {
     const n = lvItems(lv).length;
-    cardIdx[lv] = n ? Math.min(cardIdx[lv], n-1) : 0;
+    lvCardIdx[lv] = n ? Math.min(lvCardIdx[lv], n-1) : 0;
   }
 }
 
-const delay = ms => new Promise(r => setTimeout(r, ms));
-const esc   = s  => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// ── scene switch ──────────────────────────────────────────────────────────
+function goLv() {
+  curScene = 'lv';
+  document.body.classList.add('on-lv');
+  renderLvCard();
+}
+function goHome() {
+  curScene = 'pin';
+  document.body.classList.remove('on-lv');
+  renderPinned();
+}
 
-// ── toast ────────────────────────────────────────────────────────────────────
+// ── toast ─────────────────────────────────────────────────────────────────
 let _tt;
 function toast(msg) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(_tt);
-  _tt = setTimeout(() => el.classList.remove('show'), 1800);
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 1800);
 }
 
-// ── modal ────────────────────────────────────────────────────────────────────
+// ── modal ─────────────────────────────────────────────────────────────────
 let _mres = null;
 function openModal(title, ctx='', ph='') {
   document.getElementById('mtitle').textContent = title;
@@ -265,10 +306,7 @@ function openModal(title, ctx='', ph='') {
   inp.placeholder = ph; inp.value = '';
   document.getElementById('overlay').classList.add('open');
   setTimeout(() => inp.focus(), 220);
-  return new Promise(res => {
-    _mres = res;
-    inp.onkeydown = e => { if(e.key==='Enter') modalDone(inp.value); };
-  });
+  return new Promise(res => { _mres = res; inp.onkeydown = e => { if(e.key==='Enter') modalDone(inp.value); }; });
 }
 function modalDone(val) {
   document.getElementById('overlay').classList.remove('open');
@@ -276,26 +314,26 @@ function modalDone(val) {
 }
 function overlayBg(e) { if(e.target===e.currentTarget) modalDone(null); }
 
-// ── actions ──────────────────────────────────────────────────────────────────
+// ── actions ───────────────────────────────────────────────────────────────
 async function doComplete(item) {
   await DEL(`/api/items/${item.id}`);
-  clampIdx(); await reload(); toast('✓ 完成');
+  clampLvIdx(); await reload(); toast('✓ 完成');
 }
 async function doDelete(item) {
   await DEL(`/api/items/${item.id}`);
-  clampIdx(); await reload(); toast('✗ 已刪除');
+  clampLvIdx(); await reload(); toast('✗ 已刪除');
 }
-async function doPromote(item) {        // Lv0 上滑 → Lv1
+async function doPromote(item) {
   if (lvItems(1).length >= 10) { toast('Lv1 已滿 10 格'); return; }
   await PATCH(`/api/items/${item.id}`, {level:1});
-  clampIdx(); await reload(); toast('→ 升到 Lv1');
+  clampLvIdx(); await reload(); toast('→ 升到 Lv1');
 }
-async function doPin(item) {            // Lv1 上滑 → 代辦三格
+async function doPin(item) {
   if (pinned().length >= 3) { toast('代辦三格已滿'); return; }
   await PATCH(`/api/items/${item.id}`, {pinned:true});
   await reload(); toast('📌 已釘選');
 }
-async function doToLv2(item) {          // Lv1 雙擊
+async function doToLv2(item) {
   const tag = await openModal('移動到 Lv2','項目：'+item.content,'分類 tag（可留空）');
   if (tag===null) return;
   const parent_tag = tag || item.content;
@@ -303,203 +341,255 @@ async function doToLv2(item) {          // Lv1 雙擊
   await PATCH(`/api/items/${item.id}`, {level:2, parent_tag, content});
   await reload(); toast('→ 移到 Lv2');
 }
-async function doToLv3(item) {          // Lv2 下滑
+async function doToLv3(item) {
   await PATCH(`/api/items/${item.id}`, {level:3});
-  clampIdx(); await reload(); toast('→ 移到 Lv3');
+  clampLvIdx(); await reload(); toast('→ 移到 Lv3');
 }
-async function doCut(item) {            // Lv2 雙擊
+async function doCut(item) {
   const content = await openModal('切項目','從：'+item.content,'新項目內容…');
   if (!content) return;
   await POST('/api/items', {content, level:0});
   await reload(); toast('✂ 已切出到 Lv0');
 }
-async function doAddPinned() {
-  const content = await openModal('加入代辦三格','','輸入項目…');
-  if (!content) return;
-  if (lvItems(1).length >= 10) { toast('Lv1 已滿 10 格'); return; }
-  await POST('/api/items', {content, level:1, pinned:true});
-  await reload(); toast('📌 已加入');
+
+// ── lv card navigation ────────────────────────────────────────────────────
+function lvNavigate(dir) {
+  const lv = activeLv();
+  const n  = lvItems(lv).length;
+  const nx = lvCardIdx[lv] + dir;
+  if (nx < 0 || nx >= n) return;
+  lvCardIdx[lv] = nx;
+  renderLvCard();
 }
 
-function navigate(dir) {
-  const list = lvItems(curLv);
-  const next = cardIdx[curLv] + dir;
-  if (next < 0 || next >= list.length) return;
-  cardIdx[curLv] = next;
-  renderCard();
-}
-
-// ── render ───────────────────────────────────────────────────────────────────
-function render() {
-  renderBadge();
-  renderPinned();
-  renderCard();
-}
-
-function renderBadge() {
-  const b   = document.getElementById('lvbadge');
-  const all = lvItems(0).length + lvItems(1).length + lvItems(2).length;
-  if (all === 0) {
-    b.textContent = '全清 ✓'; b.className = 'lv-badge empty'; return;
-  }
-  b.textContent = `Lv${curLv}`;
-  b.className   = `lv-badge lv${curLv}`;
-}
-
+// ── render: pinned carousel ───────────────────────────────────────────────
 function renderPinned() {
-  const grid = document.getElementById('pgrid');
-  const ps   = pinned();
-  let html   = '';
-  ps.forEach(item => {
-    html += `<div class="p-card" data-id="${item.id}">
-      <div class="p-card-txt">${esc(item.content)}</div>
-      <div class="p-card-hint">↑ 完成</div>
-      <div class="swind"></div>
-    </div>`;
-  });
-  for (let i=ps.length; i<3; i++) {
-    html += `<div class="p-slot" onclick="doAddPinned()">+</div>`;
-  }
-  grid.innerHTML = html;
+  const ps    = pinned();
+  const track = document.getElementById('pin-track');
+  const dots  = document.getElementById('pin-dots');
 
-  grid.querySelectorAll('.p-card').forEach(el => {
-    const item = ps.find(i => i.id === parseInt(el.dataset.id));
-    swipeable(el, {
-      up:   () => flyEl(el, () => doComplete(item)),
-      down: null, left: null, right: null, dbl: null,
-      thresh: 40
-    });
+  // build 3 slides
+  let html = '';
+  for (let i=0; i<3; i++) {
+    const item = ps[i];
+    if (item) {
+      html += `<div class="pin-slide">
+        <div class="pin-card" data-id="${item.id}">
+          <div class="pin-card-label">代辦三格 · ${i+1}/3</div>
+          <div class="pin-card-body">${esc(item.content)}</div>
+          <div class="pin-card-hint"><span>↑ 上滑完成</span></div>
+          <div class="swind"></div>
+        </div>
+      </div>`;
+    } else {
+      html += `<div class="pin-slide">
+        <div class="pin-slot" onclick="goLv()">
+          <div class="pin-slot-icon">+</div>
+          <div class="pin-slot-txt">加入代辦三格</div>
+        </div>
+      </div>`;
+    }
+  }
+  track.innerHTML = html;
+
+  // clamp pinIdx
+  pinIdx = Math.min(pinIdx, 2);
+  track.style.transform = `translateX(-${pinIdx*100}%)`;
+
+  // dots
+  dots.innerHTML = [0,1,2].map(i => `<div class="dot${i===pinIdx?' on':''}"></div>`).join('');
+
+  // swipe on carousel
+  attachCarouselSwipe(document.getElementById('pin-carousel'), ps);
+}
+
+function setPinIdx(i) {
+  pinIdx = Math.max(0, Math.min(2, i));
+  document.getElementById('pin-track').style.transform = `translateX(-${pinIdx*100}%)`;
+  document.querySelectorAll('.dot').forEach((d,idx) => d.classList.toggle('on', idx===pinIdx));
+}
+
+function attachCarouselSwipe(el, ps) {
+  let sx, sy, startIdx, dragging=false;
+  const THRESH = 50;
+
+  el.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    startIdx = pinIdx; dragging = true;
+    document.getElementById('pin-track').style.transition = 'none';
+  }, {passive:true});
+
+  el.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // horizontal drag: move track live
+      const base = startIdx * 100;
+      const pct  = (dx / el.offsetWidth) * 100;
+      document.getElementById('pin-track').style.transform = `translateX(${-(base - pct)}%)`;
+      if (e.cancelable) e.preventDefault();
+    }
+  }, {passive:false});
+
+  el.addEventListener('touchend', e => {
+    if (!dragging) return; dragging = false;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    document.getElementById('pin-track').style.transition = 'transform .3s cubic-bezier(.4,0,.2,1)';
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (dx < -THRESH) setPinIdx(startIdx+1);
+      else if (dx > THRESH) setPinIdx(startIdx-1);
+      else setPinIdx(startIdx);
+    } else {
+      // restore position
+      document.getElementById('pin-track').style.transform = `translateX(-${pinIdx*100}%)`;
+      // up swipe → complete current pinned item
+      if (dy < -THRESH) {
+        const item = ps[pinIdx];
+        if (item) flyPinCard(() => doComplete(item));
+      }
+    }
+  }, {passive:true});
+
+  // mouse support
+  let mdown=false, msx, msy, msi;
+  el.addEventListener('mousedown', e=>{ mdown=true; msx=e.clientX; msy=e.clientY; msi=pinIdx; document.getElementById('pin-track').style.transition='none'; });
+  window.addEventListener('mousemove', e=>{
+    if(!mdown) return;
+    const dx=e.clientX-msx;
+    const base=msi*100, pct=(dx/el.offsetWidth)*100;
+    document.getElementById('pin-track').style.transform=`translateX(${-(base-pct)}%)`;
+  });
+  window.addEventListener('mouseup', e=>{
+    if(!mdown) return; mdown=false;
+    const dx=e.clientX-msx, dy=e.clientY-msy;
+    document.getElementById('pin-track').style.transition='transform .3s cubic-bezier(.4,0,.2,1)';
+    if(Math.abs(dx)>Math.abs(dy)){
+      if(dx<-THRESH) setPinIdx(msi+1); else if(dx>THRESH) setPinIdx(msi-1); else setPinIdx(msi);
+    } else {
+      document.getElementById('pin-track').style.transform=`translateX(-${pinIdx*100}%)`;
+      if(dy<-THRESH){ const item=ps[pinIdx]; if(item) flyPinCard(()=>doComplete(item)); }
+    }
   });
 }
 
-function renderCard() {
+function flyPinCard(action) {
+  const track = document.getElementById('pin-track');
+  const slides = track.querySelectorAll('.pin-slide');
+  const slide  = slides[pinIdx];
+  if (!slide) { action(); return; }
+  const card = slide.querySelector('.pin-card');
+  if (!card) { action(); return; }
+  card.style.transition = 'transform .26s ease,opacity .26s ease';
+  card.style.transform  = 'translateY(-130%)';
+  card.style.opacity    = '0';
+  setTimeout(action, 260);
+}
+
+// ── render: lv card ───────────────────────────────────────────────────────
+function renderLvCard() {
   const stage = document.getElementById('cstage');
   const nav   = document.getElementById('cnav');
-  const list  = lvItems(curLv);
+  const badge = document.getElementById('lvbadge');
+  const lv    = activeLv();
+  const list  = lvItems(lv);
 
-  if (list.length === 0) {
-    const all = lvItems(0).length+lvItems(1).length+lvItems(2).length;
-    if (all === 0) {
-      stage.innerHTML = `<div class="empty-state"><span class="e-icon">🎉</span><span class="e-txt">全部清空了！</span></div>`;
-    } else {
-      stage.innerHTML = `<div class="empty-state"><span class="e-icon">✓</span><span class="e-txt">Lv${curLv} 已清空</span></div>`;
-    }
-    nav.textContent = ''; return;
+  // update badge
+  const all = lvItems(0).length+lvItems(1).length+lvItems(2).length;
+  if (!all) {
+    badge.textContent='全清 ✓'; badge.className='lv-badge empty';
+  } else {
+    badge.textContent=`Lv${lv}`; badge.className=`lv-badge lv${lv}`;
   }
 
-  const i    = cardIdx[curLv];
+  if (!list.length) {
+    stage.innerHTML = all
+      ? `<div class="empty-state"><span class="e-icon">✓</span><span class="e-txt">Lv${lv} 已清空</span></div>`
+      : `<div class="empty-state"><span class="e-icon">🎉</span><span class="e-txt">全部清空了！</span></div>`;
+    nav.textContent=''; return;
+  }
+
+  const i    = lvCardIdx[lv];
   const item = list[i];
   const HINTS = {
-    0: ['↑ 升 Lv1','↓ 刪除'],
-    1: ['↑ 釘選','↓ 刪除','← → 切換','×2 → Lv2'],
-    2: ['↑ 完成','↓ → Lv3','← → 切換','×2 切項目'],
+    0:['↑ 升 Lv1','↓ 刪除'],
+    1:['↑ 釘選','↓ 刪除','← → 切換','×2 → Lv2'],
+    2:['↑ 完成','↓ → Lv3','← → 切換','×2 切項目'],
   };
 
   stage.innerHTML = `
-    <div class="card lv${curLv}" id="ccard">
-      <div class="card-stripe"></div>
-      <div class="card-tag">Lv${item.level}${item.parent_tag?' · '+esc(item.parent_tag):''}</div>
-      <div class="card-body">${esc(item.content)}</div>
-      <div class="card-hints">${HINTS[curLv].map(h=>`<span class="hint">${h}</span>`).join('')}</div>
+    <div class="lv-card lv${lv}" id="ccard">
+      <div class="lv-card-tag">Lv${item.level}${item.parent_tag?' · '+esc(item.parent_tag):''}</div>
+      <div class="lv-card-body">${esc(item.content)}</div>
+      <div class="lv-card-hints">${HINTS[lv].map(h=>`<span class="hint">${h}</span>`).join('')}</div>
       <div class="swind"></div>
     </div>`;
 
-  nav.textContent = list.length > 1 ? `${i+1} / ${list.length}` : '';
+  nav.textContent = list.length>1 ? `${i+1} / ${list.length}` : '';
 
   const card = document.getElementById('ccard');
   const H = {
-    0: { up:   () => flyCard('up',   () => doPromote(item)),
-         down: () => flyCard('down', () => doDelete(item)),
-         left: null, right: null, dbl: null },
-    1: { up:   () => flyCard('up',   () => doPin(item)),
-         down: () => flyCard('down', () => doDelete(item)),
-         left: () => navigate(1), right: () => navigate(-1),
-         dbl:  () => doToLv2(item) },
-    2: { up:   () => flyCard('up',   () => doComplete(item)),
-         down: () => flyCard('down', () => doToLv3(item)),
-         left: () => navigate(1), right: () => navigate(-1),
-         dbl:  () => doCut(item) },
-  }[curLv];
+    0:{up:()=>flyLvCard('up',   ()=>doPromote(item)), down:()=>flyLvCard('down',()=>doDelete(item)),  left:null, right:null, dbl:null},
+    1:{up:()=>flyLvCard('up',   ()=>doPin(item)),     down:()=>flyLvCard('down',()=>doDelete(item)),  left:()=>lvNavigate(1), right:()=>lvNavigate(-1), dbl:()=>doToLv2(item)},
+    2:{up:()=>flyLvCard('up',   ()=>doComplete(item)),down:()=>flyLvCard('down',()=>doToLv3(item)),   left:()=>lvNavigate(1), right:()=>lvNavigate(-1), dbl:()=>doCut(item)},
+  }[lv];
   swipeable(card, H);
 }
 
-// ── fly animation ────────────────────────────────────────────────────────────
-function flyCard(dir, action) {
+function flyLvCard(dir, action) {
   const card = document.getElementById('ccard');
   if (!card) { action(); return; }
-  const T = {up:'translateY(-130%)',down:'translateY(130%)',left:'translateX(-130%)',right:'translateX(130%)'};
-  card.style.transition = 'transform .24s ease,opacity .24s ease';
-  card.style.transform  = T[dir];
-  card.style.opacity    = '0';
+  const T={up:'translateY(-130%)',down:'translateY(130%)',left:'translateX(-130%)',right:'translateX(130%)'};
+  card.style.transition='transform .24s ease,opacity .24s ease';
+  card.style.transform=T[dir]; card.style.opacity='0';
   setTimeout(action, 240);
 }
-function flyEl(el, action) {
-  el.style.transition = 'transform .22s ease,opacity .22s ease';
-  el.style.transform  = 'translateY(-130%)';
-  el.style.opacity    = '0';
-  setTimeout(action, 220);
-}
 
-// ── swipe engine ─────────────────────────────────────────────────────────────
-function swipeable(el, {up, down, left, right, dbl, thresh=55}) {
-  let sx, sy, active=false, lastTap=0;
-  const noLR = !left && !right;
-
-  const start = (cx,cy) => { sx=cx; sy=cy; active=true; el.style.transition='none'; };
-  const move  = (cx,cy) => {
-    if (!active) return;
-    const dx=cx-sx, dy=cy-sy, horiz=Math.abs(dx)>Math.abs(dy);
-    let tx=0, ty=0;
-    if (horiz && !noLR) tx = Math.sign(dx)*Math.min(Math.abs(dx), thresh*1.5);
-    else if (!horiz)    ty = Math.sign(dy)*Math.min(Math.abs(dy), thresh*1.5);
-    el.style.transform = `translate(${tx}px,${ty}px) rotate(${tx*.025}deg)`;
-
-    const ov = el.querySelector('.swind');
-    if (ov) {
-      const abs = Math.max(Math.abs(tx),Math.abs(ty));
-      if (abs > 14) {
-        ov.style.opacity = Math.min(abs/(thresh*1.5), .85);
-        if (!horiz) {
-          ov.textContent   = dy<0?'↑':'↓';
-          ov.style.background = dy<0?'rgba(107,203,119,.28)':'rgba(255,78,106,.28)';
-        } else {
-          ov.textContent   = dx>0?'←':'→';
-          ov.style.background = 'rgba(255,255,255,.08)';
-        }
+// ── swipe engine (for lv card) ────────────────────────────────────────────
+function swipeable(el, {up,down,left,right,dbl}) {
+  let sx,sy,active=false,lastTap=0;
+  const THRESH=55, noLR=!left&&!right;
+  const s=(cx,cy)=>{ sx=cx;sy=cy;active=true;el.style.transition='none'; };
+  const m=(cx,cy)=>{
+    if(!active) return;
+    const dx=cx-sx,dy=cy-sy,h=Math.abs(dx)>Math.abs(dy);
+    let tx=0,ty=0;
+    if(h&&!noLR) tx=Math.sign(dx)*Math.min(Math.abs(dx),THRESH*1.5);
+    else if(!h)  ty=Math.sign(dy)*Math.min(Math.abs(dy),THRESH*1.5);
+    el.style.transform=`translate(${tx}px,${ty}px) rotate(${tx*.025}deg)`;
+    const ov=el.querySelector('.swind');
+    if(ov){
+      const abs=Math.max(Math.abs(tx),Math.abs(ty));
+      if(abs>14){
+        ov.style.opacity=Math.min(abs/(THRESH*1.5),.85);
+        if(!h){ov.textContent=dy<0?'↑':'↓';ov.style.background=dy<0?'rgba(107,203,119,.28)':'rgba(255,78,106,.28)';}
+        else{ov.textContent=dx>0?'←':'→';ov.style.background='rgba(255,255,255,.07)';}
       } else ov.style.opacity=0;
     }
   };
-  const end = (cx,cy) => {
-    if (!active) return; active=false;
-    const dx=cx-sx, dy=cy-sy, horiz=Math.abs(dx)>Math.abs(dy);
-    el.style.transition='transform .15s ease,opacity .15s ease';
-    el.style.transform='';
-    const ov=el.querySelector('.swind');
-    if (ov) ov.style.opacity=0;
-
-    if (horiz && !noLR) {
-      if (dx< -thresh && left)  { left();  return; }
-      if (dx>  thresh && right) { right(); return; }
-    } else if (!horiz) {
-      if (dy< -thresh && up)    { up();    return; }
-      if (dy>  thresh && down)  { down();  return; }
-    }
-    if (dbl && Math.abs(dx)<12 && Math.abs(dy)<12) {
+  const e=(cx,cy)=>{
+    if(!active) return; active=false;
+    const dx=cx-sx,dy=cy-sy,h=Math.abs(dx)>Math.abs(dy);
+    el.style.transition='transform .15s ease'; el.style.transform='';
+    const ov=el.querySelector('.swind'); if(ov) ov.style.opacity=0;
+    if(h&&!noLR){ if(dx<-THRESH&&left){left();return;} if(dx>THRESH&&right){right();return;} }
+    else if(!h){ if(dy<-THRESH&&up){up();return;} if(dy>THRESH&&down){down();return;} }
+    if(dbl&&Math.abs(dx)<12&&Math.abs(dy)<12){
       const now=Date.now();
-      if (now-lastTap<320) { dbl(); lastTap=0; }
-      else lastTap=now;
+      if(now-lastTap<320){dbl();lastTap=0;} else lastTap=now;
     }
   };
-
-  el.addEventListener('touchstart', e=>{ const t=e.touches[0]; start(t.clientX,t.clientY); },{passive:true});
-  el.addEventListener('touchmove',  e=>{ const t=e.touches[0]; move(t.clientX,t.clientY); if(e.cancelable)e.preventDefault(); },{passive:false});
-  el.addEventListener('touchend',   e=>{ const t=e.changedTouches[0]; end(t.clientX,t.clientY); },{passive:true});
-  el.addEventListener('mousedown',  e=>start(e.clientX,e.clientY));
-  window.addEventListener('mousemove',  e=>{ if(e.buttons===1)move(e.clientX,e.clientY); });
-  window.addEventListener('mouseup',    e=>{ if(active)end(e.clientX,e.clientY); });
+  el.addEventListener('touchstart',ev=>{const t=ev.touches[0];s(t.clientX,t.clientY);},{passive:true});
+  el.addEventListener('touchmove', ev=>{const t=ev.touches[0];m(t.clientX,t.clientY);if(ev.cancelable)ev.preventDefault();},{passive:false});
+  el.addEventListener('touchend',  ev=>{const t=ev.changedTouches[0];e(t.clientX,t.clientY);},{passive:true});
+  el.addEventListener('mousedown', ev=>s(ev.clientX,ev.clientY));
+  window.addEventListener('mousemove',ev=>{if(ev.buttons===1)m(ev.clientX,ev.clientY);});
+  window.addEventListener('mouseup',  ev=>{if(active)e(ev.clientX,ev.clientY);});
 }
 
-// ── input ────────────────────────────────────────────────────────────────────
+// ── input ─────────────────────────────────────────────────────────────────
 async function sendInput() {
   const inp=document.getElementById('inp');
   const val=inp.value.trim(); if(!val) return;
@@ -507,9 +597,15 @@ async function sendInput() {
   await POST('/api/items',{content:val,level:0});
   await reload(); toast('+ 已加入 Lv0');
 }
-document.getElementById('inp').addEventListener('keydown',e=>{ if(e.key==='Enter')sendInput(); });
+document.getElementById('inp').addEventListener('keydown',e=>{ if(e.key==='Enter') sendInput(); });
 
-// ── boot ─────────────────────────────────────────────────────────────────────
+// ── render ────────────────────────────────────────────────────────────────
+function render() {
+  if (curScene==='pin') renderPinned();
+  else renderLvCard();
+}
+
+// ── boot ──────────────────────────────────────────────────────────────────
 reload();
 </script>
 </body>
