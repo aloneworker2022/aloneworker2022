@@ -262,17 +262,23 @@ const lvItems = lv => items.filter(i => i.level === lv);
 const pinned  = ()  => items.filter(i => i.level === 1 && i.pinned);
 const esc     = s   => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-// Lv0 先處理，清完才 Lv1，以此類推
+// Bug1 fix: Lv1 處理清單排除已釘選的項目（釘選的只在代辦三格顯示）
+function processable(lv) {
+  if (lv === 1) return items.filter(i => i.level === 1 && !i.pinned);
+  return lvItems(lv);
+}
+
+// Lv0 先處理，清完才 Lv1，以此類推（用 processable 判斷）
 function activeLv() {
-  if (lvItems(0).length) return 0;
-  if (lvItems(1).length) return 1;
-  if (lvItems(2).length) return 2;
+  if (processable(0).length) return 0;
+  if (processable(1).length) return 1;
+  if (processable(2).length) return 2;
   return 0;
 }
 
 function clampLvIdx() {
   for (let lv=0;lv<3;lv++) {
-    const n = lvItems(lv).length;
+    const n = processable(lv).length;
     lvCardIdx[lv] = n ? Math.min(lvCardIdx[lv], n-1) : 0;
   }
 }
@@ -331,7 +337,11 @@ async function doPromote(item) {
 async function doPin(item) {
   if (pinned().length >= 3) { toast('代辦三格已滿'); return; }
   await PATCH(`/api/items/${item.id}`, {pinned:true});
-  await reload(); toast('📌 已釘選');
+  clampLvIdx();
+  await reload();
+  toast('📌 已釘選');
+  // Bug2 fix: 代辦三格滿了就自動跳回代辦三格場景
+  if (pinned().length >= 3) goHome();
 }
 async function doToLv2(item) {
   const tag = await openModal('移動到 Lv2','項目：'+item.content,'分類 tag（可留空）');
@@ -355,7 +365,7 @@ async function doCut(item) {
 // ── lv card navigation ────────────────────────────────────────────────────
 function lvNavigate(dir) {
   const lv = activeLv();
-  const n  = lvItems(lv).length;
+  const n  = processable(lv).length;
   const nx = lvCardIdx[lv] + dir;
   if (nx < 0 || nx >= n) return;
   lvCardIdx[lv] = nx;
@@ -494,10 +504,10 @@ function renderLvCard() {
   const nav   = document.getElementById('cnav');
   const badge = document.getElementById('lvbadge');
   const lv    = activeLv();
-  const list  = lvItems(lv);
+  const list  = processable(lv);  // Bug1: 排除已釘選的 Lv1 項目
 
-  // update badge
-  const all = lvItems(0).length+lvItems(1).length+lvItems(2).length;
+  // update badge（全部 items 計數，不含 Lv3）
+  const all = processable(0).length+processable(1).length+processable(2).length;
   if (!all) {
     badge.textContent='全清 ✓'; badge.className='lv-badge empty';
   } else {
@@ -527,7 +537,7 @@ function renderLvCard() {
       <div class="swind"></div>
     </div>`;
 
-  nav.textContent = list.length>1 ? `${i+1} / ${list.length}` : '';
+  nav.textContent = list.length > 1 ? `${i+1} / ${list.length}` : '';
 
   const card = document.getElementById('ccard');
   const H = {
