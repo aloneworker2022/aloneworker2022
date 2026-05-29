@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
+import uuid
 from pathlib import Path
 from typing import Optional
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 
 from cthulhu_note import config as _cfg
@@ -57,7 +59,21 @@ def _to_dict(item) -> dict:
     }
 
 
-# ── API ───────────────────────────────────────────────────────────────────────
+def _data_dir() -> Path:
+    return Path(_cfg.load().csv_path).expanduser().parent
+
+
+def _settings_path() -> Path:
+    return _data_dir() / "settings.json"
+
+
+def _bg_dir() -> Path:
+    d = _data_dir() / "backgrounds"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+# ── API: items ────────────────────────────────────────────────────────────────
 
 @app.get("/api/items")
 def list_items(level: Optional[int] = None):
@@ -100,6 +116,50 @@ def update_item(item_id: int, body: UpdateBody):
         item.parent_tag = body.parent_tag
     _store.write_items(csv, items)
     return _to_dict(item)
+
+
+# ── API: settings ─────────────────────────────────────────────────────────────
+
+@app.get("/api/settings")
+def get_settings():
+    p = _settings_path()
+    if not p.exists():
+        return {}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+@app.post("/api/settings")
+async def save_settings(request: Request):
+    body = await request.json()
+    p = _settings_path()
+    p.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
+    return body
+
+
+# ── API: backgrounds ──────────────────────────────────────────────────────────
+
+@app.post("/api/backgrounds", status_code=201)
+async def upload_bg(file: UploadFile = File(...)):
+    ext = Path(file.filename or "img.jpg").suffix.lower() or ".jpg"
+    name = uuid.uuid4().hex + ext
+    data = await file.read()
+    (_bg_dir() / name).write_bytes(data)
+    return {"name": name}
+
+
+@app.get("/api/backgrounds/{name}")
+def serve_bg(name: str):
+    p = _bg_dir() / name
+    if not p.exists():
+        raise HTTPException(404, "not found")
+    return FileResponse(str(p))
+
+
+@app.delete("/api/backgrounds/{name}", status_code=204)
+def delete_bg(name: str):
+    p = _bg_dir() / name
+    if p.exists():
+        p.unlink()
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
