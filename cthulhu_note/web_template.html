@@ -174,9 +174,122 @@ body.on-lv #scene-lv {transform:translateX(0)}
   z-index:60;opacity:0;transition:opacity .18s,transform .18s;
   pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── themes ── */
+body[data-theme="light"]{
+  --bg:#f0f0f0;--surface:#fff;--card:#e8e8e8;--border:rgba(0,0,0,.1);
+  --text:#1a1a1a;--dim:#999;--lv0:#1a7fd4;--lv1:#d63352;--lv2:#c8860a;--pin:#b8960a}
+body[data-theme="green"]{
+  --bg:#0d1f15;--surface:#142a1c;--card:#1a3526;--border:rgba(80,180,100,.15);
+  --text:#d4edd8;--dim:#5a8a65;--lv0:#5bc4a0;--lv1:#e05a6a;--lv2:#d4a843;--pin:#a8d060}
+
+/* ── background layer ── */
+#bg-layer{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center;
+  transition:opacity .8s ease;opacity:0}
+#bg-layer.on{opacity:1}
+body.has-bg{--bg:transparent}
+body.has-bg .pin-card,body.has-bg .lv-card,body.has-bg .pin-slot{
+  background:rgba(10,10,10,.72);backdrop-filter:blur(10px)}
+body[data-theme="light"].has-bg .pin-card,
+body[data-theme="light"].has-bg .lv-card,
+body[data-theme="light"].has-bg .pin-slot{
+  background:rgba(255,255,255,.72)}
+
+/* ── gear button ── */
+.gear-btn{position:fixed;top:12px;right:14px;z-index:40;
+  background:none;border:none;font-size:1.1rem;cursor:pointer;
+  opacity:.4;transition:opacity .15s;padding:6px;line-height:1}
+.gear-btn:active{opacity:1}
+
+/* ── settings sheet ── */
+.stt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);
+  z-index:50;display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s}
+.stt-overlay.open{opacity:1;pointer-events:all}
+.stt-sheet{background:var(--surface);border-radius:16px 16px 0 0;
+  padding:20px 20px 32px;width:100%;max-width:480px;
+  border:1px solid var(--border);border-bottom:none;
+  transform:translateY(100%);transition:transform .25s ease;max-height:80vh;overflow-y:auto}
+.stt-overlay.open .stt-sheet{transform:translateY(0)}
+.stt-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.stt-hdr span{font-size:.9rem;font-weight:600}
+.stt-close{background:none;border:none;font-size:1.1rem;cursor:pointer;
+  color:var(--dim);padding:4px;line-height:1}
+.stt-section{margin-bottom:20px}
+.stt-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--dim);margin-bottom:10px}
+.theme-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.theme-btn{padding:12px 8px;border:1.5px solid var(--border);border-radius:8px;
+  background:var(--card);color:var(--text);font-size:.8rem;cursor:pointer;
+  font-family:inherit;transition:all .15s;display:flex;flex-direction:column;
+  align-items:center;gap:6px}
+.theme-btn.active{border-color:var(--lv1)}
+.theme-btn:active{opacity:.7}
+.theme-swatch{width:28px;height:18px;border-radius:3px}
+.sw-dark{background:linear-gradient(135deg,#0d0d0d 50%,#242424 50%)}
+.sw-light{background:linear-gradient(135deg,#f0f0f0 50%,#e8e8e8 50%)}
+.sw-green{background:linear-gradient(135deg,#0d1f15 50%,#1a3526 50%)}
+.bg-actions{display:flex;gap:8px;margin-bottom:12px}
+.upload-label{flex:1;padding:10px;background:var(--card);border:1px solid var(--border);
+  border-radius:8px;text-align:center;font-size:.82rem;cursor:pointer;color:var(--text)}
+.upload-label input{display:none}
+.clear-bg-btn{padding:10px 14px;background:var(--card);border:1px solid var(--border);
+  border-radius:8px;font-size:.82rem;cursor:pointer;color:var(--dim);font-family:inherit}
+.bg-thumbs{display:flex;flex-wrap:wrap;gap:8px}
+.bg-thumb{position:relative;width:72px;height:52px;border-radius:4px;overflow:hidden;
+  border:1px solid var(--border);flex-shrink:0}
+.bg-thumb img{width:100%;height:100%;object-fit:cover}
+.bg-thumb-del{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);
+  border:none;border-radius:50%;width:18px;height:18px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.6rem;cursor:pointer;color:#fff;line-height:1}
+.bg-thumb.active-bg{outline:2px solid var(--lv1);outline-offset:1px}
 </style>
 </head>
-<body>
+<body data-theme="dark">
+
+<!-- 背景圖層 -->
+<div id="bg-layer"></div>
+
+<!-- 設定齒輪 -->
+<button class="gear-btn" onclick="openSettings()" aria-label="設定">⚙</button>
+
+<!-- 設定 sheet -->
+<div class="stt-overlay" id="stt-overlay" onclick="sttOverlayClick(event)">
+  <div class="stt-sheet">
+    <div class="stt-hdr">
+      <span>設定</span>
+      <button class="stt-close" onclick="closeSettings()">✕</button>
+    </div>
+
+    <div class="stt-section">
+      <div class="stt-label">配色</div>
+      <div class="theme-grid">
+        <button class="theme-btn active" data-t="dark" onclick="setTheme('dark')">
+          <span class="theme-swatch sw-dark"></span>暗色
+        </button>
+        <button class="theme-btn" data-t="light" onclick="setTheme('light')">
+          <span class="theme-swatch sw-light"></span>亮色
+        </button>
+        <button class="theme-btn" data-t="green" onclick="setTheme('green')">
+          <span class="theme-swatch sw-green"></span>墨綠
+        </button>
+      </div>
+    </div>
+
+    <div class="stt-section">
+      <div class="stt-label">背景圖片</div>
+      <div class="bg-actions">
+        <label class="upload-label">
+          + 上傳圖片
+          <input type="file" accept="image/*" multiple onchange="uploadBgFiles(this)">
+        </label>
+        <button class="clear-bg-btn" onclick="clearAllBg()">清除全部</button>
+      </div>
+      <div class="bg-thumbs" id="bg-thumbs"></div>
+    </div>
+  </div>
+</div>
 
 <div class="scenes">
 
@@ -628,7 +741,147 @@ if (window.visualViewport) {
   });
 }
 
+// ── settings ──────────────────────────────────────────────────────────────
+let cfg = { theme: 'dark', bgImages: [], bgIndex: 0 };
+let bgTimer = null;
+
+function loadCfg() {
+  try {
+    const s = localStorage.getItem('cthulhu-cfg');
+    if (s) cfg = { ...cfg, ...JSON.parse(s) };
+  } catch(e) {}
+}
+function saveCfg() {
+  try {
+    localStorage.setItem('cthulhu-cfg', JSON.stringify(cfg));
+  } catch(e) { toast('儲存設定失敗（空間不足）'); }
+}
+
+function setTheme(t) {
+  cfg.theme = t;
+  document.body.dataset.theme = t;
+  document.querySelectorAll('.theme-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.t === t));
+  saveCfg();
+}
+
+// resize + compress image before storing
+function resizeImage(file) {
+  return new Promise(res => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1280;
+        let w = img.width, h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        res(c.toDataURL('image/jpeg', 0.75));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadBgFiles(input) {
+  const files = Array.from(input.files);
+  for (const f of files) {
+    const b64 = await resizeImage(f);
+    cfg.bgImages.push(b64);
+  }
+  input.value = '';
+  saveCfg();
+  renderBgThumbs();
+  applyBg();
+  startBgRotation();
+}
+
+function removeBgAt(i) {
+  cfg.bgImages.splice(i, 1);
+  if (cfg.bgIndex >= cfg.bgImages.length) cfg.bgIndex = 0;
+  saveCfg();
+  renderBgThumbs();
+  applyBg();
+  startBgRotation();
+}
+
+function clearAllBg() {
+  cfg.bgImages = []; cfg.bgIndex = 0;
+  saveCfg();
+  renderBgThumbs();
+  applyBg();
+  clearInterval(bgTimer);
+}
+
+function applyBg() {
+  const layer = document.getElementById('bg-layer');
+  if (!cfg.bgImages.length) {
+    layer.classList.remove('on');
+    document.body.classList.remove('has-bg');
+    setTimeout(() => { layer.style.backgroundImage = ''; }, 800);
+    return;
+  }
+  const img = cfg.bgImages[cfg.bgIndex];
+  layer.style.backgroundImage = `url(${img})`;
+  requestAnimationFrame(() => {
+    layer.classList.add('on');
+    document.body.classList.add('has-bg');
+  });
+}
+
+function rotateBg() {
+  if (cfg.bgImages.length < 2) return;
+  cfg.bgIndex = (cfg.bgIndex + 1) % cfg.bgImages.length;
+  // crossfade: fade out then in
+  const layer = document.getElementById('bg-layer');
+  layer.style.transition = 'opacity .8s ease';
+  layer.style.opacity = '0';
+  setTimeout(() => {
+    layer.style.backgroundImage = `url(${cfg.bgImages[cfg.bgIndex]})`;
+    layer.style.opacity = '1';
+  }, 800);
+  renderBgThumbs();
+}
+
+function startBgRotation() {
+  clearInterval(bgTimer);
+  if (cfg.bgImages.length > 1) bgTimer = setInterval(rotateBg, 10 * 60 * 1000);
+}
+
+function renderBgThumbs() {
+  const wrap = document.getElementById('bg-thumbs');
+  if (!wrap) return;
+  wrap.innerHTML = cfg.bgImages.map((img, i) => `
+    <div class="bg-thumb${i===cfg.bgIndex?' active-bg':''}">
+      <img src="${img}" loading="lazy">
+      <button class="bg-thumb-del" onclick="removeBgAt(${i})">✕</button>
+    </div>`).join('');
+}
+
+function openSettings() {
+  renderBgThumbs();
+  document.getElementById('stt-overlay').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('stt-overlay').classList.remove('open');
+}
+function sttOverlayClick(e) { if (e.target===e.currentTarget) closeSettings(); }
+
+function applyCfg() {
+  document.body.dataset.theme = cfg.theme;
+  document.querySelectorAll('.theme-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.t === cfg.theme));
+  applyBg();
+  startBgRotation();
+}
+
 // ── boot ──────────────────────────────────────────────────────────────────
+loadCfg();
+applyCfg();
 reload();
 </script>
 </body>
