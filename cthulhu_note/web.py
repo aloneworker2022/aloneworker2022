@@ -47,18 +47,6 @@ def _csv() -> str:
     return _cfg.load().csv_path
 
 
-def _to_dict(item) -> dict:
-    return {
-        "id": item.id,
-        "content": item.content,
-        "level": item.level,
-        "parent_tag": item.parent_tag,
-        "pinned": item.pinned,
-        "created_at": item.created_at.isoformat(),
-        "memos_id": item.memos_id,
-    }
-
-
 def _data_dir() -> Path:
     return Path(_cfg.load().csv_path).expanduser().parent
 
@@ -71,6 +59,29 @@ def _bg_dir() -> Path:
     d = _data_dir() / "backgrounds"
     d.mkdir(parents=True, exist_ok=True)
     return d
+
+
+def _card_img_dir() -> Path:
+    d = _data_dir() / "card_images"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _has_card_image(item_id: int) -> bool:
+    return (_card_img_dir() / f"{item_id}.jpg").exists()
+
+
+def _to_dict(item) -> dict:
+    return {
+        "id": item.id,
+        "content": item.content,
+        "level": item.level,
+        "parent_tag": item.parent_tag,
+        "pinned": item.pinned,
+        "created_at": item.created_at.isoformat(),
+        "memos_id": item.memos_id,
+        "has_image": _has_card_image(item.id),
+    }
 
 
 # ── API: items ────────────────────────────────────────────────────────────────
@@ -116,6 +127,30 @@ def update_item(item_id: int, body: UpdateBody):
         item.parent_tag = body.parent_tag
     _store.write_items(csv, items)
     return _to_dict(item)
+
+
+# ── API: card images ──────────────────────────────────────────────────────────
+
+@app.post("/api/items/{item_id}/image", status_code=201)
+async def upload_card_image(item_id: int, file: UploadFile = File(...)):
+    data = await file.read()
+    (_card_img_dir() / f"{item_id}.jpg").write_bytes(data)
+    return {"ok": True}
+
+
+@app.get("/api/items/{item_id}/image")
+def serve_card_image(item_id: int):
+    p = _card_img_dir() / f"{item_id}.jpg"
+    if not p.exists():
+        raise HTTPException(404, "no image")
+    return FileResponse(str(p))
+
+
+@app.delete("/api/items/{item_id}/image", status_code=204)
+def delete_card_image(item_id: int):
+    p = _card_img_dir() / f"{item_id}.jpg"
+    if p.exists():
+        p.unlink()
 
 
 # ── API: settings ─────────────────────────────────────────────────────────────
