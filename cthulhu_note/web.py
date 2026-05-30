@@ -41,6 +41,11 @@ class UpdateBody(BaseModel):
     parent_tag: Optional[str] = None
 
 
+class MemosConfigBody(BaseModel):
+    url: Optional[str] = None
+    token: Optional[str] = None
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _csv() -> str:
@@ -127,6 +132,66 @@ def update_item(item_id: int, body: UpdateBody):
         item.parent_tag = body.parent_tag
     _store.write_items(csv, items)
     return _to_dict(item)
+
+
+# ── API: complete (push to Memos then delete) ─────────────────────────────────
+
+@app.post("/api/items/{item_id}/complete")
+def complete_item(item_id: int):
+    csv = _csv()
+    items = _store.read_items(csv)
+    item = next((i for i in items if i.id == item_id), None)
+    if not item:
+        raise HTTPException(404, "not found")
+
+    memos_pushed = False
+    memos_error: Optional[str] = None
+
+    cfg = _cfg.load()
+    if cfg.memos_token:
+        from cthulhu_note.memos import MemosClient, MemosError
+        client = MemosClient(cfg.memos_url, cfg.memos_token)
+        try:
+            client.push(item.content)
+            memos_pushed = True
+        except MemosError as e:
+            memos_error = str(e)
+
+    remaining = [i for i in items if i.id != item_id]
+    _store.write_items(csv, remaining)
+    return {"memos_pushed": memos_pushed, "memos_error": memos_error}
+
+
+# ── API: memos config ─────────────────────────────────────────────────────────
+
+@app.get("/api/memos/config")
+def get_memos_config():
+    cfg = _cfg.load()
+    tok = cfg.memos_token
+    masked = (("*" * max(0, len(tok) - 4)) + tok[-4:]) if len(tok) >= 4 else ("****" if tok else "")
+    return {"url": cfg.memos_url, "token_set": bool(tok), "token_masked": masked}
+
+
+@app.post("/api/memos/config")
+def save_memos_config(body: MemosConfigBody):
+    cfg = _cfg.load()
+    if body.url is not None:
+        cfg.memos_url = body.url.rstrip("/")
+    if body.token:
+        cfg.memos_token = body.token
+    _cfg.save(cfg)
+    return {"ok": True}
+
+
+@app.get("/api/memos/test")
+def test_memos():
+    cfg = _cfg.load()
+    if not cfg.memos_token:
+        return {"ok": False, "error": "尚未設定 token"}
+    from cthulhu_note.memos import MemosClient
+    client = MemosClient(cfg.memos_url, cfg.memos_token)
+    ok = client.test_connection()
+    return {"ok": ok, "url": cfg.memos_url, "error": None if ok else "連線失敗"}
 
 
 # ── API: card images ──────────────────────────────────────────────────────────

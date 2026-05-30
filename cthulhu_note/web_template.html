@@ -265,6 +265,18 @@ body.has-bg .pin-card,body.has-bg .lv-card,body.has-bg .pin-slot{backdrop-filter
   display:flex;align-items:center;justify-content:center;
   font-size:.6rem;cursor:pointer;color:#fff;line-height:1}
 .bg-thumb.active-bg{outline:2px solid var(--lv1);outline-offset:1px}
+/* memos / generic settings inputs */
+.stt-input{width:100%;background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;color:var(--text);font-size:.85rem;
+  outline:none;margin-bottom:8px;font-family:inherit}
+.stt-input:focus{border-color:rgba(255,255,255,.3)}
+.stt-btn-row{display:flex;gap:8px;margin-top:2px}
+.stt-btn{padding:9px 14px;background:var(--card);border:1px solid var(--border);
+  border-radius:8px;font-size:.82rem;cursor:pointer;color:var(--text);font-family:inherit;
+  display:flex;align-items:center;gap:5px;flex:1;justify-content:center}
+.stt-btn:active{opacity:.7}
+.stt-btn.primary{background:var(--lv1);border-color:transparent;color:#fff}
+.stt-status{font-size:.75rem;margin-top:8px;min-height:1.2em;color:var(--dim)}
 </style>
 </head>
 <body data-theme="dark">
@@ -327,6 +339,17 @@ body.has-bg .pin-card,body.has-bg .lv-card,body.has-bg .pin-slot{backdrop-filter
           <span class="card-opacity-val" id="cv-lv2">100%</span>
         </div>
       </div>
+    </div>
+
+    <div class="stt-section">
+      <div class="stt-label">Memos 整合</div>
+      <input id="memos-url"   type="url"      class="stt-input" placeholder="http://localhost:5230">
+      <input id="memos-token" type="password" class="stt-input" placeholder="Access Token" autocomplete="new-password">
+      <div class="stt-btn-row">
+        <button class="stt-btn primary" onclick="saveMemos()"><i class="bi bi-floppy"></i> 儲存</button>
+        <button class="stt-btn"         onclick="testMemos()"><i class="bi bi-wifi"></i> 測試連線</button>
+      </div>
+      <div class="stt-status" id="memos-status"></div>
     </div>
 
     <div class="stt-section">
@@ -501,8 +524,15 @@ function resetOverlaySize() {
 
 // ── actions ───────────────────────────────────────────────────────────────
 async function doComplete(item) {
-  await DEL(`/api/items/${item.id}`);
-  clampLvIdx(); await reload(); toast('✓ 完成');
+  try {
+    const r = await POST(`/api/items/${item.id}/complete`, {});
+    clampLvIdx(); await reload();
+    if (r.memos_error)  toast(`✓ 完成（Memos 失敗：${r.memos_error}）`);
+    else if (r.memos_pushed) toast('✓ 完成，已存入 Memos');
+    else                toast('✓ 完成');
+  } catch(e) {
+    clampLvIdx(); await reload(); toast('完成失敗：' + e.message);
+  }
 }
 async function doDelete(item) {
   await DEL(`/api/items/${item.id}`);
@@ -993,9 +1023,49 @@ function renderBgThumbs() {
     </div>`).join('');
 }
 
+// ── Memos settings ────────────────────────────────────────────────────────
+async function loadMemosConfig() {
+  try {
+    const r = await GET('/api/memos/config');
+    const urlInp = document.getElementById('memos-url');
+    const tokInp = document.getElementById('memos-token');
+    if (urlInp) urlInp.value = r.url || '';
+    if (tokInp) tokInp.placeholder = r.token_set ? `已設定 (${r.token_masked})` : 'Access Token';
+  } catch(e) {}
+}
+
+async function saveMemos() {
+  const url   = (document.getElementById('memos-url').value   || '').trim();
+  const token = (document.getElementById('memos-token').value || '').trim();
+  const st    = document.getElementById('memos-status');
+  if (!url) { st.textContent = '請輸入 Memos 網址'; st.style.color = 'var(--lv1)'; return; }
+  st.textContent = '儲存中…'; st.style.color = 'var(--dim)';
+  try {
+    await POST('/api/memos/config', {url, token: token || undefined});
+    document.getElementById('memos-token').value = '';
+    await loadMemosConfig();
+    st.textContent = '已儲存'; st.style.color = 'var(--lv3)';
+  } catch(e) {
+    st.textContent = '儲存失敗：' + e.message; st.style.color = 'var(--lv1)';
+  }
+}
+
+async function testMemos() {
+  const st = document.getElementById('memos-status');
+  st.textContent = '測試中…'; st.style.color = 'var(--dim)';
+  try {
+    const r = await GET('/api/memos/test');
+    st.textContent = r.ok ? `連線成功 (${r.url})` : `連線失敗：${r.error}`;
+    st.style.color  = r.ok ? 'var(--lv3)' : 'var(--lv1)';
+  } catch(e) {
+    st.textContent = '測試失敗：' + e.message; st.style.color = 'var(--lv1)';
+  }
+}
+
 function openSettings() {
   renderBgThumbs();
   applyCardColors();
+  loadMemosConfig();
   document.getElementById('stt-overlay').classList.add('open');
 }
 function closeSettings() {
