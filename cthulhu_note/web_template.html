@@ -54,8 +54,11 @@ body.on-lv #scene-lv {transform:translateX(0)}
   display:flex;flex-direction:column;justify-content:space-between;
   box-shadow:0 20px 60px rgba(0,0,0,.5);user-select:none;
   background-size:cover;background-position:center}
-.pin-card-label{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;
-  color:var(--pin);opacity:.7;margin-bottom:12px;position:relative;z-index:1}
+.pin-card-label{font-size:.6rem;letter-spacing:.08em;
+  background:rgba(255,255,255,.5);color:rgba(0,0,0,.72);
+  border-radius:6px;padding:2px 7px;margin-bottom:14px;
+  display:inline-flex;align-items:center;gap:4px;
+  position:relative;z-index:1}
 .pin-card-body{font-size:1.2rem;line-height:1.6;flex:1;
   display:flex;align-items:center;word-break:break-all;position:relative;z-index:1}
 .pin-card-hint{font-size:.68rem;color:var(--dim);margin-top:16px;
@@ -83,11 +86,10 @@ body.on-lv #scene-lv {transform:translateX(0)}
   color:var(--dim);font-size:.82rem;cursor:pointer;font-family:inherit;padding:6px 0;transition:color .15s}
 .back-btn:active{color:var(--text)}
 .back-icon{font-size:.9rem}
-.lv-badge{font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:10px}
-.lv-badge.lv0{background:var(--lv0);color:#000}
-.lv-badge.lv1{background:var(--lv1);color:#fff}
-.lv-badge.lv2{background:var(--lv2);color:#000}
-.lv-badge.empty{background:var(--surface);color:var(--dim);border:1px solid var(--border)}
+.lv-badge{font-size:.72rem;font-weight:600;padding:4px 12px;border-radius:10px;
+  background:rgba(255,255,255,.5);color:rgba(0,0,0,.8)}
+.lv-badge.lv0,.lv-badge.lv1,.lv-badge.lv2{background:rgba(255,255,255,.5);color:rgba(0,0,0,.8)}
+.lv-badge.empty{background:rgba(255,255,255,.25);color:rgba(0,0,0,.45);border:none}
 
 .lv-area{flex:1;display:flex;flex-direction:column;align-items:center;
   justify-content:center;padding:12px 28px 8px;min-height:0;overflow:hidden}
@@ -105,13 +107,15 @@ body.on-lv #scene-lv {transform:translateX(0)}
 .lv-card.lv0{background-color:var(--card-lv0)}
 .lv-card.lv1{background-color:var(--card-lv1)}
 .lv-card.lv2{background-color:var(--card-lv2)}
-.lv-card-tag{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;
-  opacity:.35;margin-bottom:10px;position:relative;z-index:1}
+.lv-card-tag{font-size:.6rem;letter-spacing:.06em;
+  background:rgba(255,255,255,.5);color:rgba(0,0,0,.72);
+  border-radius:6px;padding:2px 7px;margin-bottom:10px;
+  display:inline-block;position:relative;z-index:1}
 .lv-card-body{font-size:1.15rem;line-height:1.6;flex:1;
   display:flex;align-items:center;word-break:break-all;position:relative;z-index:1}
 .lv-card-hints{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px;position:relative;z-index:1}
-.hint{font-size:.64rem;color:var(--dim);padding:3px 8px;
-  border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border)}
+.hint{font-size:.64rem;color:rgba(0,0,0,.72);padding:3px 8px;
+  border-radius:8px;background:rgba(255,255,255,.5);border:none}
 .lv-card .swind{position:absolute;inset:0;border-radius:4px;
   display:flex;align-items:center;justify-content:center;
   font-size:3.5rem;opacity:0;pointer-events:none;z-index:4}
@@ -176,7 +180,10 @@ body.on-lv #scene-lv {transform:translateX(0)}
 /* ── toast ── */
 .toast{position:fixed;bottom:84px;left:50%;
   transform:translateX(-50%) translateY(14px);
-  background:rgba(35,35,35,.96);border:1px solid var(--border);
+  background:rgba(255,255,255,.5);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.35);
+  color:#111;font-weight:500;
   padding:9px 18px;border-radius:20px;font-size:.82rem;
   z-index:60;opacity:0;transition:opacity .18s,transform .18s;
   pointer-events:none;white-space:nowrap}
@@ -315,7 +322,7 @@ body.has-bg .pin-card,body.has-bg .lv-card,body.has-bg .pin-slot{backdrop-filter
       <div class="stt-label">卡片背景顏色與透明度</div>
       <div class="card-color-rows">
         <div class="card-color-row">
-          <span class="card-color-name">📌 代辦三格</span>
+          <span class="card-color-name"><i class="bi bi-pin-fill"></i> 代辦三格</span>
           <input type="color" class="card-cp" id="cc-pin" value="#242424" oninput="onCardColorChange('pin')">
           <input type="range" class="card-ca" id="ca-pin" min="0" max="1" step="0.01" value="1" oninput="onCardColorChange('pin')">
           <span class="card-opacity-val" id="cv-pin">100%</span>
@@ -554,7 +561,7 @@ async function doPin(item) {
     clampLvIdx();
   }
   await reload();
-  toast('📌 已釘選');
+  toast('已釘選');
 }
 async function doToLv2(item) {
   const tag = await openModal('移動到 Lv2','項目：'+item.content,'分類 tag（可留空）');
@@ -632,7 +639,7 @@ function renderPinned() {
         <div class="pin-card" data-id="${item.id}" style="${bgStyle}">
           ${overlay}
           ${cardImgCtrlHtml(item)}
-          <div class="pin-card-label">代辦三格 · ${i+1}/3</div>
+          <div class="pin-card-label"><i class="bi bi-pin-fill"></i> ${i+1} / 3</div>
           <div class="pin-card-body">${esc(item.content)}</div>
           <div class="pin-card-hint"><span>↑ 上滑完成</span></div>
           <div class="swind"></div>
