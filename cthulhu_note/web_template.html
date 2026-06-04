@@ -122,6 +122,18 @@ body.on-lv #scene-lv {transform:translateX(0)}
 
 .lv-nav{font-size:.72rem;color:var(--dim);text-align:center;margin-top:10px}
 
+/* ── lv bookmark tabs (right side) ── */
+.lv-tabs{position:absolute;right:0;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:3px;z-index:10}
+.lv-tab{background:var(--surface);border:1px solid var(--border);border-right:none;
+  border-radius:6px 0 0 6px;padding:10px 5px;cursor:pointer;
+  color:var(--dim);font-family:inherit;font-size:.6rem;font-weight:700;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  min-width:30px;transition:background .15s,color .15s,opacity .15s}
+.lv-tab.active{background:var(--lv1);color:#fff;border-color:transparent}
+.lv-tab:active{opacity:.6}
+.lv-tab-cnt{font-size:.68rem;font-weight:800}
+
 .empty-state{text-align:center;padding:16px}
 .e-icon{font-size:2.8rem;display:block;margin-bottom:8px}
 .e-txt{font-size:.88rem;color:var(--dim)}
@@ -361,6 +373,14 @@ body.has-bg .pin-card,body.has-bg .lv-card,body.has-bg .pin-slot{backdrop-filter
 
     <div class="stt-section">
       <div class="stt-label">全域背景圖片</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:.78rem;color:var(--dim);flex-shrink:0">切換間隔</span>
+        <input type="number" id="bg-interval" class="stt-input"
+          min="1" max="120" value="1"
+          style="width:72px;margin-bottom:0;text-align:center"
+          onchange="setBgInterval()">
+        <span style="font-size:.78rem;color:var(--dim);flex-shrink:0">分鐘</span>
+      </div>
       <div class="bg-actions">
         <label class="upload-label">
           <i class="bi bi-image"></i> 上傳圖片
@@ -401,6 +421,21 @@ body.has-bg .pin-card,body.has-bg .lv-card,body.has-bg .pin-slot{backdrop-filter
         <div class="lv-nav" id="cnav"></div>
       </div>
     </div>
+    <!-- 右側書籤分頁 -->
+    <div class="lv-tabs" id="lv-tabs">
+      <button class="lv-tab" data-lv="0" onclick="forceLevel(0)">
+        <span class="lv-tab-label">Lv0</span>
+        <span class="lv-tab-cnt" id="lv-tab-cnt-0">0</span>
+      </button>
+      <button class="lv-tab" data-lv="1" onclick="forceLevel(1)">
+        <span class="lv-tab-label">Lv1</span>
+        <span class="lv-tab-cnt" id="lv-tab-cnt-1">0</span>
+      </button>
+      <button class="lv-tab" data-lv="2" onclick="forceLevel(2)">
+        <span class="lv-tab-label">Lv2</span>
+        <span class="lv-tab-cnt" id="lv-tab-cnt-2">0</span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -433,6 +468,8 @@ let items    = [];
 let pinIdx   = 0;
 let lvCardIdx= {0:0,1:0,2:0};
 let curScene = 'pin';
+let forcedLv = null;
+let _carouselAbort = null;
 
 // ── api ───────────────────────────────────────────────────────────────────
 async function req(method, path, body) {
@@ -473,6 +510,29 @@ function clampLvIdx() {
   }
 }
 
+// ── lv tabs ───────────────────────────────────────────────────────────────
+function currentLv() {
+  return forcedLv !== null ? forcedLv : activeLv();
+}
+
+function forceLevel(lv) {
+  forcedLv = lv;
+  lvCardIdx[lv] = Math.max(0, Math.min(lvCardIdx[lv], processable(lv).length - 1));
+  renderLvCard();
+}
+
+function updateLvTabs(activeLvNum) {
+  for (let l = 0; l < 3; l++) {
+    const tab = document.querySelector(`#lv-tabs .lv-tab[data-lv="${l}"]`);
+    const cnt = document.getElementById(`lv-tab-cnt-${l}`);
+    if (!tab) continue;
+    const n = processable(l).length;
+    if (cnt) cnt.textContent = n;
+    tab.classList.toggle('active', l === activeLvNum);
+    tab.style.opacity = n > 0 ? '1' : '0.35';
+  }
+}
+
 // ── scene switch ──────────────────────────────────────────────────────────
 function goLv() {
   curScene = 'lv';
@@ -481,6 +541,7 @@ function goLv() {
 }
 function goHome() {
   curScene = 'pin';
+  forcedLv = null;
   document.body.classList.remove('on-lv');
   renderPinned();
 }
@@ -613,7 +674,7 @@ function cardImgCtrlHtml(item) {
 
 // ── lv card navigation ────────────────────────────────────────────────────
 function lvNavigate(dir) {
-  const lv = activeLv();
+  const lv = currentLv();
   const n  = processable(lv).length;
   const nx = lvCardIdx[lv] + dir;
   if (nx < 0 || nx >= n) return;
@@ -669,6 +730,11 @@ function setPinIdx(i) {
 }
 
 function attachCarouselSwipe(el, ps) {
+  // Cancel any previous listeners to prevent accumulation across re-renders
+  if (_carouselAbort) _carouselAbort.abort();
+  _carouselAbort = new AbortController();
+  const sig = _carouselAbort.signal;
+
   let sx, sy, startIdx, dragging=false;
   const THRESH = 50;
 
@@ -676,7 +742,7 @@ function attachCarouselSwipe(el, ps) {
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
     startIdx = pinIdx; dragging = true;
     document.getElementById('pin-track').style.transition = 'none';
-  }, {passive:true});
+  }, {passive:true, signal:sig});
   el.addEventListener('touchmove', e => {
     if (!dragging) return;
     const dx = e.touches[0].clientX - sx;
@@ -687,7 +753,7 @@ function attachCarouselSwipe(el, ps) {
       document.getElementById('pin-track').style.transform = `translateX(${-(base-pct)}%)`;
       if (e.cancelable) e.preventDefault();
     }
-  }, {passive:false});
+  }, {passive:false, signal:sig});
   el.addEventListener('touchend', e => {
     if (!dragging) return; dragging = false;
     const dx = e.changedTouches[0].clientX - sx;
@@ -701,16 +767,16 @@ function attachCarouselSwipe(el, ps) {
       document.getElementById('pin-track').style.transform = `translateX(-${pinIdx*100}%)`;
       if (dy < -THRESH) { const item=ps[pinIdx]; if(item) flyPinCard(()=>doComplete(item)); }
     }
-  }, {passive:true});
+  }, {passive:true, signal:sig});
 
   let mdown=false, msx, msy, msi;
-  el.addEventListener('mousedown', e=>{ mdown=true; msx=e.clientX; msy=e.clientY; msi=pinIdx; document.getElementById('pin-track').style.transition='none'; });
+  el.addEventListener('mousedown', e=>{ mdown=true; msx=e.clientX; msy=e.clientY; msi=pinIdx; document.getElementById('pin-track').style.transition='none'; }, {signal:sig});
   window.addEventListener('mousemove', e=>{
     if(!mdown) return;
     const dx=e.clientX-msx;
     const base=msi*100, pct=(dx/el.offsetWidth)*100;
     document.getElementById('pin-track').style.transform=`translateX(${-(base-pct)}%)`;
-  });
+  }, {signal:sig});
   window.addEventListener('mouseup', e=>{
     if(!mdown) return; mdown=false;
     const dx=e.clientX-msx, dy=e.clientY-msy;
@@ -721,7 +787,7 @@ function attachCarouselSwipe(el, ps) {
       document.getElementById('pin-track').style.transform=`translateX(-${pinIdx*100}%)`;
       if(dy<-THRESH){ const item=ps[pinIdx]; if(item) flyPinCard(()=>doComplete(item)); }
     }
-  });
+  }, {signal:sig});
 }
 
 function flyPinCard(action) {
@@ -742,8 +808,9 @@ function renderLvCard() {
   const stage = document.getElementById('cstage');
   const nav   = document.getElementById('cnav');
   const badge = document.getElementById('lvbadge');
-  const lv    = activeLv();
+  const lv    = currentLv();
   const list  = processable(lv);
+  updateLvTabs(lv);
 
   const all = processable(0).length+processable(1).length+processable(2).length;
   if (!all) {
@@ -880,6 +947,7 @@ let cfg = {
   theme: 'dark',
   bgImages: [],
   bgIndex: 0,
+  bgInterval: 1,
   cardColors: null,  // null = use theme defaults
 };
 let bgTimer = null;
@@ -1017,7 +1085,16 @@ function rotateBg() {
 
 function startBgRotation() {
   clearInterval(bgTimer);
-  if (cfg.bgImages.length > 1) bgTimer = setInterval(rotateBg, 10 * 60 * 1000);
+  if (cfg.bgImages.length > 1)
+    bgTimer = setInterval(rotateBg, (cfg.bgInterval || 1) * 60 * 1000);
+}
+
+function setBgInterval() {
+  const v = parseInt(document.getElementById('bg-interval').value) || 1;
+  cfg.bgInterval = Math.max(1, v);
+  document.getElementById('bg-interval').value = cfg.bgInterval;
+  saveCfg();
+  startBgRotation();
 }
 
 function renderBgThumbs() {
@@ -1073,6 +1150,8 @@ function openSettings() {
   renderBgThumbs();
   applyCardColors();
   loadMemosConfig();
+  const bgInp = document.getElementById('bg-interval');
+  if (bgInp) bgInp.value = cfg.bgInterval || 1;
   document.getElementById('stt-overlay').classList.add('open');
 }
 function closeSettings() {
