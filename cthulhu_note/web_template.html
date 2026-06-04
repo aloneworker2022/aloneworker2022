@@ -298,15 +298,7 @@ body.has-bg .pin-card,body.has-bg .lv-card,body.has-bg .pin-slot{backdrop-filter
 
 <!-- 右側固定標籤欄 -->
 <div class="tab-bar" id="tab-bar">
-  <button class="lv-tab" data-lv="0" onclick="forceLevel(0)">
-    <span class="lv-tab-label">Lv0</span>
-    <span class="lv-tab-cnt" id="lv-tab-cnt-0">0</span>
-  </button>
-  <button class="lv-tab" data-lv="1" onclick="forceLevel(1)">
-    <span class="lv-tab-label">Lv1</span>
-    <span class="lv-tab-cnt" id="lv-tab-cnt-1">0</span>
-  </button>
-  <button class="lv-tab" data-lv="2" onclick="forceLevel(2)">
+  <button class="lv-tab" id="lv2-tab" style="display:none" onclick="forceLevel(2)">
     <span class="lv-tab-label">Lv2</span>
     <span class="lv-tab-cnt" id="lv-tab-cnt-2">0</span>
   </button>
@@ -516,28 +508,31 @@ function clampLvIdx() {
 
 // ── lv tabs ───────────────────────────────────────────────────────────────
 function currentLv() {
-  return forcedLv !== null ? forcedLv : activeLv();
+  // Lv2 can only be forced when Lv1 still has items to process
+  // (sequential GTD flow: clear Lv1 before Lv2 is the natural exit)
+  if (forcedLv === 2 && processable(1).length > 0) return 2;
+  forcedLv = null;
+  return activeLv();
 }
 
 function forceLevel(lv) {
   forcedLv = lv;
   lvCardIdx[lv] = Math.max(0, Math.min(lvCardIdx[lv], processable(lv).length - 1));
-  if (curScene !== 'lv') {
-    curScene = 'lv';
-    document.body.classList.add('on-lv');
-  }
   renderLvCard();
 }
 
-function updateLvTabs(activeLvNum) {
-  for (let l = 0; l < 3; l++) {
-    const tab = document.querySelector(`#tab-bar .lv-tab[data-lv="${l}"]`);
-    const cnt = document.getElementById(`lv-tab-cnt-${l}`);
-    if (!tab) continue;
-    const n = processable(l).length;
+function updateTabBar() {
+  const lv2Tab = document.getElementById('lv2-tab');
+  if (!lv2Tab) return;
+  // Lv2 tab appears only while processing Lv1 (Lv0 empty, Lv1 has items)
+  const showLv2 = curScene === 'lv' && processable(1).length > 0;
+  lv2Tab.style.display = showLv2 ? 'flex' : 'none';
+  if (showLv2) {
+    const n = processable(2).length;
+    const cnt = document.getElementById('lv-tab-cnt-2');
     if (cnt) cnt.textContent = n;
-    tab.classList.toggle('active', l === activeLvNum);
-    tab.style.opacity = n > 0 ? '' : '0.3';
+    lv2Tab.classList.toggle('active', forcedLv === 2);
+    lv2Tab.style.opacity = n > 0 ? '' : '0.35';
   }
 }
 
@@ -818,7 +813,7 @@ function renderLvCard() {
   const badge = document.getElementById('lvbadge');
   const lv    = currentLv();
   const list  = processable(lv);
-  updateLvTabs(lv);
+  updateTabBar();
 
   const all = processable(0).length+processable(1).length+processable(2).length;
   if (!all) {
@@ -927,7 +922,7 @@ async function sendInput() {
 document.getElementById('inp').addEventListener('keydown',e=>{ if(e.key==='Enter') sendInput(); });
 
 function render() {
-  if (curScene==='pin') { renderPinned(); updateLvTabs(null); }
+  if (curScene==='pin') { renderPinned(); updateTabBar(); }
   else renderLvCard();
 }
 
