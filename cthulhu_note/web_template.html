@@ -122,17 +122,18 @@ body.on-lv #scene-lv {transform:translateX(0)}
 
 .lv-nav{font-size:.72rem;color:var(--dim);text-align:center;margin-top:10px}
 
-/* ── lv bookmark tabs (right side) ── */
-.lv-tabs{position:absolute;right:0;top:50%;transform:translateY(-50%);
-  display:flex;flex-direction:column;gap:3px;z-index:10}
+/* ── right tab bar (fixed, both scenes) ── */
+.tab-bar{position:fixed;top:14px;right:0;z-index:40;
+  display:flex;flex-direction:column;gap:3px;transition:opacity .2s}
 .lv-tab{background:var(--surface);border:1px solid var(--border);border-right:none;
   border-radius:6px 0 0 6px;padding:10px 5px;cursor:pointer;
   color:var(--dim);font-family:inherit;font-size:.6rem;font-weight:700;
   display:flex;flex-direction:column;align-items:center;gap:3px;
-  min-width:30px;transition:background .15s,color .15s,opacity .15s}
+  min-width:30px;transition:background .15s,color .15s}
 .lv-tab.active{background:var(--lv1);color:#fff;border-color:transparent}
-.lv-tab:active{opacity:.6}
+.lv-tab:active{filter:brightness(.75)}
 .lv-tab-cnt{font-size:.68rem;font-weight:800}
+.gear-tab{background:var(--card);margin-top:4px}
 
 .empty-state{text-align:center;padding:16px}
 .e-icon{font-size:2.8rem;display:block;margin-bottom:8px}
@@ -218,13 +219,6 @@ body.has-bg{--bg:transparent}
    Card color CSS vars (--card-pin, --card-lv0 etc.) now fully control the background. */
 body.has-bg .pin-card,body.has-bg .lv-card,body.has-bg .pin-slot{backdrop-filter:blur(12px)}
 
-/* ── gear button ── */
-.gear-btn{position:fixed;top:12px;right:14px;z-index:40;
-  background:none;border:none;cursor:pointer;
-  opacity:.45;transition:opacity .15s;padding:6px;line-height:1;color:var(--text)}
-.gear-btn:active{opacity:1}
-.gear-btn i{font-size:1.15rem}
-
 /* ── settings sheet ── */
 .stt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);
   z-index:50;display:flex;align-items:flex-end;justify-content:center;
@@ -302,10 +296,25 @@ body.has-bg .pin-card,body.has-bg .lv-card,body.has-bg .pin-slot{backdrop-filter
 
 <div id="bg-layer"></div>
 
-<!-- 設定齒輪 -->
-<button class="gear-btn" onclick="openSettings()" aria-label="設定">
-  <i class="bi bi-gear-fill"></i>
-</button>
+<!-- 右側固定標籤欄 -->
+<div class="tab-bar" id="tab-bar">
+  <button class="lv-tab" data-lv="0" onclick="forceLevel(0)">
+    <span class="lv-tab-label">Lv0</span>
+    <span class="lv-tab-cnt" id="lv-tab-cnt-0">0</span>
+  </button>
+  <button class="lv-tab" data-lv="1" onclick="forceLevel(1)">
+    <span class="lv-tab-label">Lv1</span>
+    <span class="lv-tab-cnt" id="lv-tab-cnt-1">0</span>
+  </button>
+  <button class="lv-tab" data-lv="2" onclick="forceLevel(2)">
+    <span class="lv-tab-label">Lv2</span>
+    <span class="lv-tab-cnt" id="lv-tab-cnt-2">0</span>
+  </button>
+  <button class="lv-tab gear-tab" onclick="openSettings()" aria-label="設定">
+    <i class="bi bi-gear-fill" style="font-size:.85rem"></i>
+    <span style="font-size:.55rem">設定</span>
+  </button>
+</div>
 
 <!-- 設定 sheet -->
 <div class="stt-overlay" id="stt-overlay" onclick="sttOverlayClick(event)">
@@ -357,6 +366,16 @@ body.has-bg .pin-card,body.has-bg .lv-card,body.has-bg .pin-slot{backdrop-filter
           <input type="range" class="card-ca" id="ca-lv2" min="0" max="1" step="0.01" value="1" oninput="onCardColorChange('lv2')">
           <span class="card-opacity-val" id="cv-lv2">100%</span>
         </div>
+      </div>
+    </div>
+
+    <div class="stt-section">
+      <div class="stt-label">標籤欄透明度</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="range" id="tab-opacity" class="card-ca" style="flex:1"
+          min="0.1" max="1" step="0.05" value="0.7"
+          oninput="setTabOpacity(this.value)">
+        <span id="tab-opacity-val" style="font-size:.7rem;color:var(--dim);min-width:36px;text-align:right">70%</span>
       </div>
     </div>
 
@@ -420,21 +439,6 @@ body.has-bg .pin-card,body.has-bg .lv-card,body.has-bg .pin-slot{backdrop-filter
         <div id="cstage"></div>
         <div class="lv-nav" id="cnav"></div>
       </div>
-    </div>
-    <!-- 右側書籤分頁 -->
-    <div class="lv-tabs" id="lv-tabs">
-      <button class="lv-tab" data-lv="0" onclick="forceLevel(0)">
-        <span class="lv-tab-label">Lv0</span>
-        <span class="lv-tab-cnt" id="lv-tab-cnt-0">0</span>
-      </button>
-      <button class="lv-tab" data-lv="1" onclick="forceLevel(1)">
-        <span class="lv-tab-label">Lv1</span>
-        <span class="lv-tab-cnt" id="lv-tab-cnt-1">0</span>
-      </button>
-      <button class="lv-tab" data-lv="2" onclick="forceLevel(2)">
-        <span class="lv-tab-label">Lv2</span>
-        <span class="lv-tab-cnt" id="lv-tab-cnt-2">0</span>
-      </button>
     </div>
   </div>
 </div>
@@ -518,18 +522,22 @@ function currentLv() {
 function forceLevel(lv) {
   forcedLv = lv;
   lvCardIdx[lv] = Math.max(0, Math.min(lvCardIdx[lv], processable(lv).length - 1));
+  if (curScene !== 'lv') {
+    curScene = 'lv';
+    document.body.classList.add('on-lv');
+  }
   renderLvCard();
 }
 
 function updateLvTabs(activeLvNum) {
   for (let l = 0; l < 3; l++) {
-    const tab = document.querySelector(`#lv-tabs .lv-tab[data-lv="${l}"]`);
+    const tab = document.querySelector(`#tab-bar .lv-tab[data-lv="${l}"]`);
     const cnt = document.getElementById(`lv-tab-cnt-${l}`);
     if (!tab) continue;
     const n = processable(l).length;
     if (cnt) cnt.textContent = n;
     tab.classList.toggle('active', l === activeLvNum);
-    tab.style.opacity = n > 0 ? '1' : '0.35';
+    tab.style.opacity = n > 0 ? '' : '0.3';
   }
 }
 
@@ -919,7 +927,7 @@ async function sendInput() {
 document.getElementById('inp').addEventListener('keydown',e=>{ if(e.key==='Enter') sendInput(); });
 
 function render() {
-  if (curScene==='pin') renderPinned();
+  if (curScene==='pin') { renderPinned(); updateLvTabs(null); }
   else renderLvCard();
 }
 
@@ -948,6 +956,7 @@ let cfg = {
   bgImages: [],
   bgIndex: 0,
   bgInterval: 1,
+  tabOpacity: 0.7,
   cardColors: null,  // null = use theme defaults
 };
 let bgTimer = null;
@@ -1089,6 +1098,19 @@ function startBgRotation() {
     bgTimer = setInterval(rotateBg, (cfg.bgInterval || 1) * 60 * 1000);
 }
 
+function applyTabOpacity() {
+  const bar = document.getElementById('tab-bar');
+  if (bar) bar.style.opacity = cfg.tabOpacity ?? 0.7;
+}
+
+function setTabOpacity(v) {
+  cfg.tabOpacity = parseFloat(v);
+  const val = document.getElementById('tab-opacity-val');
+  if (val) val.textContent = Math.round(v * 100) + '%';
+  applyTabOpacity();
+  saveCfg();
+}
+
 function setBgInterval() {
   const v = parseInt(document.getElementById('bg-interval').value) || 1;
   cfg.bgInterval = Math.max(1, v);
@@ -1152,6 +1174,11 @@ function openSettings() {
   loadMemosConfig();
   const bgInp = document.getElementById('bg-interval');
   if (bgInp) bgInp.value = cfg.bgInterval || 1;
+  const tabOp = document.getElementById('tab-opacity');
+  const tabOpVal = document.getElementById('tab-opacity-val');
+  const v = cfg.tabOpacity ?? 0.7;
+  if (tabOp) tabOp.value = v;
+  if (tabOpVal) tabOpVal.textContent = Math.round(v * 100) + '%';
   document.getElementById('stt-overlay').classList.add('open');
 }
 function closeSettings() {
@@ -1164,6 +1191,7 @@ function applyCfg() {
   document.querySelectorAll('.theme-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.t === cfg.theme));
   applyCardColors();
+  applyTabOpacity();
   applyBg();
   startBgRotation();
 }
