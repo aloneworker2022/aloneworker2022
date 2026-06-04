@@ -1,0 +1,187 @@
+import shutil
+from io import StringIO
+
+from prompt_toolkit.formatted_text import ANSI, FormattedText
+from prompt_toolkit.layout.containers import (
+    ConditionalContainer,
+    HSplit,
+    Window,
+)
+from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.layout.layout import Layout
+from prompt_toolkit.filters import Condition
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text as RichText
+
+from cthulhu_note.state import AppState, Mode
+
+PIN_LIMIT = 3
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+
+
+def _prompt_color(state: AppState) -> str:
+    if state.mode == Mode.INPUT:
+        return "ansigreen"
+    if state.mode in (Mode.PROCESS, Mode.CUT):
+        return "ansiyellow" if state.mode == Mode.PROCESS else "ansired"
+    if state.mode == Mode.S_TAG:
+        return "ansicyan"
+    if state.mode == Mode.CTRL_V:
+        return "ansigreen"
+    return "ansiwhite"
+
+
+def _prompt_label(state: AppState) -> str:
+    if state.mode == Mode.INPUT:
+        return "[加]:"
+    if state.mode == Mode.PROCESS:
+        lv = state.process_level
+        return f"[處 Lv{lv}]:"
+    if state.mode == Mode.CUT:
+        return "[切]:"
+    if state.mode == Mode.S_TAG:
+        return "[??]:"
+    if state.mode == Mode.CTRL_V:
+        return "[代辦]:"
+    return "[?]:"
+
+
+def _hints(state: AppState) -> str:
+    if state.mode == Mode.INPUT:
+        return "Enter 加項目  Tab 切處理  Ctrl+V 代辦"
+    if state.mode == Mode.PROCESS:
+        lv = state.process_level
+        if lv == 0:
+            return "o升Lv1  x丟  n下  j跳Lv1  Tab中斷"
+        if lv == 1:
+            return "o完成  x丟  a釘  s想  n下  j跳Lv2  Tab中斷"
+        if lv == 2:
+            return "o完成  c切  u虛空  n下  Tab中斷"
+    if state.mode == Mode.CUT:
+        return "Enter送出切片  x離開"
+    if state.mode == Mode.S_TAG:
+        return "Enter確認標籤（空=用原內容）"
+    if state.mode == Mode.CTRL_V:
+        return "↑↓移動  Enter完成  Esc取消"
+    return ""
+
+
+_LEVEL_COLORS = {0: "cyan", 1: "yellow", 2: "magenta"}
+
+_LEVEL_BG = {0: "bg:ansiwhite fg:ansiblack", 1: "bg:ansired fg:ansiwhite", 2: "bg:ansiblue fg:ansiwhite"}
+
+
+def _footer_style(state: AppState) -> str:
+    if state.mode in (Mode.FLASH, Mode.TRANSITION):
+        return ""
+    if state.mode in (Mode.INPUT, Mode.CTRL_V):
+        return _LEVEL_BG[0]
+    if state.mode == Mode.PROCESS:
+        return _LEVEL_BG.get(state.process_level, "")
+    if state.mode in (Mode.CUT, Mode.S_TAG):
+        return _LEVEL_BG[2]
+    return ""
+
+
+def _card_panel(card) -> ANSI:
+    width = shutil.get_terminal_size((80, 24)).columns
+    buf = StringIO()
+    console = Console(file=buf, force_terminal=True, width=max(width - 2, 20))
+    border = _LEVEL_COLORS.get(card.level, "white")
+    content = RichText(card.content, style="bold white")
+    panel = Panel(content, title=f"[dim]Lv{card.level}[/dim]", border_style=border)
+    console.print(panel)
+    return ANSI(buf.getvalue())
+
+
+# ── content builders ─────────────────────────────────────────────────────────
+
+
+def make_header_text(state: AppState):
+    pins = state.pinned_items
+    lines = []
+    for i in range(PIN_LIMIT):
+        if i < len(pins):
+            lines.append(("ansiblue bold", f"# {pins[i].content}\n"))
+        else:
+            lines.append(("ansiblue", "# ___\n"))
+    return FormattedText(lines)
+
+
+def make_body_text(state: AppState):
+    if state.mode == Mode.TRANSITION:
+        label = state.flash_content
+        return FormattedText([
+            ("", "\n\n\n"),
+            ("bold ansicyan", f"      ── {label} ──"),
+            ("", "\n"),
+        ])
+
+    if state.mode == Mode.FLASH:
+        content = state.flash_content
+        padding = "\n" * 4
+        return FormattedText([
+            ("", padding),
+            ("ansigray italic", f"         ...{content}..."),
+            ("", "\n"),
+        ])
+
+    if state.mode == Mode.CTRL_V:
+        pins = state.pinned_items
+        if not pins:
+            return FormattedText([("ansigray", "\n  （代辦三格空空的）\n")])
+        lines: list = [("", "\n")]
+        for i, item in enumerate(pins):
+            cursor = "> " if i == state.ctrl_v_cursor else "  "
+            lines.append(("ansiyellow bold" if i == state.ctrl_v_cursor else "", f"{cursor}{item.content}\n"))
+        return FormattedText(lines)
+
+    if state.mode in (Mode.PROCESS, Mode.CUT, Mode.S_TAG):
+        card = state.current_card
+        if card:
+            return _card_panel(card)
+        return FormattedText([("ansigray", "\n\n  （無卡片）\n\n")])
+
+    # INPUT mode
+    return FormattedText([("", "\n\n\n\n")])
+
+
+def make_footer_text(state: AppState):
+    color = _prompt_color(state)
+    label = _prompt_label(state)
+    buf = state.input_buffer
+    msg = state.message
+    hints = _hints(state)
+
+    parts: list = []
+    if msg:
+        parts.append(("ansired", f"{msg}\n"))
+    parts.append((f"{color} bold", label))
+    parts.append(("", f" {buf}▮\n"))
+    parts.append(("ansigray", hints))
+    return FormattedText(parts)
+
+
+# ── layout factory ────────────────────────────────────────────────────────────
+
+
+def build_layout(state: AppState) -> Layout:
+    header = Window(
+        content=FormattedTextControl(lambda: make_header_text(state)),
+        height=PIN_LIMIT,
+    )
+    sep_top = Window(height=1, char="─")
+    body = Window(
+        content=FormattedTextControl(lambda: make_body_text(state)),
+    )
+    sep_bot = Window(height=1, char="─")
+    footer = Window(
+        content=FormattedTextControl(lambda: make_footer_text(state)),
+        height=4,
+        style=lambda: _footer_style(state),
+    )
+
+    root = HSplit([header, sep_top, body, sep_bot, footer])
+    return Layout(root)

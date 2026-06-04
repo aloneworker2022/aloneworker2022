@@ -1,0 +1,17 @@
+[Unit]
+Description=cthulhu-note web server
+After=network.target
+
+[Service]
+Type=simple
+User=aw
+WorkingDirectory=/home/aw
+ExecStart=/home/aw/.venv/cthulhu/bin/cthulhu-note-web
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cthulhu-note
+
+[Install]
+WantedBy=multi-user.target
